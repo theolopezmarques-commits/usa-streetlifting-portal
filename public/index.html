@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>USA Streetlifting – Judge Certification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&family=Anek+Gujarati:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <!-- ============ TOAST CONTAINER ============ -->
+  <div id="toast-container"></div>
+
+  <!-- ============ NAV ============ -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a class="logo" data-nav="home">
+        <img src="https://usastreetlifting.org/wp-content/uploads/2024/08/cropped-USA-Streetlifting-Transparent-File-PNG-1.png" alt="USA Streetlifting" class="logo-img" />
+      </a>
+
+      <!-- Hamburger for mobile -->
+      <button id="hamburger" class="hamburger" data-action="toggle-menu" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="nav-links" id="nav-links">
+        <a data-nav="home">Home</a>
+        <a data-nav="about">About</a>
+        <a data-nav="rules">Rules</a>
+        <a id="nav-login" data-nav="login">Login</a>
+        <a id="nav-register" data-nav="register">Register</a>
+        <a id="nav-dashboard" data-nav="dashboard" class="hidden">Dashboard</a>
+        <a id="nav-profile" data-nav="profile" class="hidden">Profile</a>
+        <a id="nav-payment" data-nav="payment" class="hidden">Pay</a>
+        <a id="nav-course" data-nav="course" class="hidden btn-nav btn-nav--course">My Course</a>
+        <a id="nav-admin" data-nav="admin" class="hidden btn-nav btn-nav--admin">⭐ Admin</a>
+        <a id="nav-directory" data-nav="directory">Judges</a>
+        <a id="nav-events" data-nav="events">Events</a>
+        <a id="nav-chat" data-nav="chat" class="hidden">Chat</a>
+        <a id="nav-logout" data-action="logout" class="hidden btn-nav">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============ PAGES ============ -->
+  <main id="app">
+
+    <!-- HOME -->
+    <section id="page-home" class="page active">
+      <div class="hero">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-bg-photo"></div>
+        <div class="hero-vignette"></div>
+
+        <div class="hero-content">
+          <div class="hero-eyebrow">Official Judging Portal</div>
+          <div class="hero-logo-wrap">
+            <img src="https://usastreetlifting.org/wp-content/uploads/2024/08/cropped-USA-Streetlifting-Transparent-File-PNG-1.png" alt="USA Streetlifting" class="hero-logo" />
+          </div>
+          <h1 class="hero-heading">Judge <span class="hero-heading-accent">Certification</span></h1>
+          <p class="hero-sub">Become a licensed USA Streetlifting judge.<br>Train, get certified, and officiate at sanctioned meets nationwide.</p>
+          <div class="hero-divider">
+            <span></span><span class="hero-divider-dot"></span><span></span>
+          </div>
+          <div class="hero-btns">
+            <button data-nav="register" class="btn btn-primary btn-glow" id="hero-register">Apply Now</button>
+            <button data-nav="login" class="btn btn-outline btn-glow" id="hero-login">Judge Login</button>
+          </div>
+        </div>
+
+        <div class="hero-scroll"><span></span></div>
+      </div>
+
+      <!-- Stats counter -->
+      <div class="stats-bar">
+        <div class="stat fade-up">
+          <span class="stat-num" data-target="7" data-stat="certified_judges">0</span>+
+          <span class="stat-label">Certified Judges</span>
+        </div>
+        <div class="stat fade-up">
+          <span class="stat-num" data-target="14" data-stat="competitions_judged">0</span>+
+          <span class="stat-label">Competitions Judged</span>
+        </div>
+        <div class="stat fade-up">
+          <span class="stat-num" data-target="6" data-stat="states_covered">0</span>
+          <span class="stat-label">States Covered</span>
+        </div>
+      </div>
+
+      <!-- Athletes / Movements -->
+      <div class="movements-section section-photo-bg" style="--bg-img: url('https://usastreetlifting.org/wp-content/uploads/2025/03/Lincoln-Black-Returns-819x1024.jpg')">
+        <div class="movements-grid">
+          <div class="movement-card fade-up" data-movement="muscleup">
+            <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Abu-Asada-Returns-819x1024.jpg" alt="Muscle Up" />
+            <div class="movement-label">Muscle Up</div>
+            <div class="movement-tap-hint">Tap for rules</div>
+          </div>
+          <div class="movement-card fade-up" data-movement="pull">
+            <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Lincoln-Black-Returns-819x1024.jpg" alt="Pull" />
+            <div class="movement-label">Pull</div>
+            <div class="movement-tap-hint">Tap for rules</div>
+          </div>
+          <div class="movement-card fade-up" data-movement="dip">
+            <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Brian-Shtika-Returns-1-819x1024.jpg" alt="Dip" />
+            <div class="movement-label">Dip</div>
+            <div class="movement-tap-hint">Tap for rules</div>
+          </div>
+          <div class="movement-card fade-up" data-movement="squat">
+            <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Miguel-Robles-Returns-819x1024.jpg" alt="Squat" />
+            <div class="movement-label">Squat</div>
+            <div class="movement-tap-hint">Tap for rules</div>
+          </div>
+        </div>
+        <div class="movements-caption fade-up">
+          <p>Four movements. One standard. Every rep judged to the same level of strictness — nationwide.</p>
+        </div>
+      </div>
+
+      <!-- Core principles -->
+      <div class="section-photo-bg" style="--bg-img: url('https://usastreetlifting.org/wp-content/uploads/2026/01/PWRBLDMEDIA-04202.jpg')">
+      <div class="section-header fade-up">
+        <h2>Our Judging Principles</h2>
+        <p class="muted">Judges are foundational to the integrity and growth of the sport</p>
+      </div>
+      <div class="principles-split fade-up">
+        <div class="principle-panel principle-panel--left">
+          <div class="principle-number">01</div>
+          <div class="principle-icon">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 24h16M24 16v16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Clarity</h3>
+          <p>Rules and movement standards are communicated clearly to all athletes, coaches, and event staff — preventing confusion and ensuring fair competition at every sanctioned meet.</p>
+          <div class="principle-line"></div>
+        </div>
+        <div class="principle-divider">
+          <span>+</span>
+        </div>
+        <div class="principle-panel principle-panel--right">
+          <div class="principle-number">02</div>
+          <div class="principle-icon">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 24h32M8 16h32M8 32h32" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Consistency</h3>
+          <p>All judges apply the rules to the same degree of strictness — ensuring every performance is judged with integrity and uniformity across every level of competition.</p>
+          <div class="principle-line"></div>
+        </div>
+      </div>
+
+      </div><!-- end principles bg -->
+
+      <!-- How it works -->
+      <div class="section-photo-bg" style="--bg-img: url('https://usastreetlifting.org/wp-content/uploads/2026/01/Judge-Pic-1-final.png')">
+      <div class="section-header fade-up" style="padding-top:3rem">
+        <h2>How Certification Works</h2>
+        <p class="muted">Steps to becoming an official USA Streetlifting judge</p>
+      </div>
+
+      <div class="steps steps-5">
+        <div class="step fade-up">
+          <div class="step-num">1</div>
+          <h3>Register &amp; Apply</h3>
+          <p>Create your account and fill out the judge application form.</p>
+        </div>
+        <div class="step-arrow fade-up">&#9654;</div>
+        <div class="step fade-up">
+          <div class="step-num">2</div>
+          <h3>Choose Your Level</h3>
+          <p>Select the certification level you want to pursue (Level 0, 1, or 2).</p>
+        </div>
+        <div class="step-arrow fade-up">&#9654;</div>
+        <div class="step fade-up">
+          <div class="step-num">3</div>
+          <h3>Pay &amp; Get Access</h3>
+          <p>Submit the certification fee to unlock access to the official judging course.</p>
+        </div>
+        <div class="step-arrow fade-up">&#9654;</div>
+        <div class="step fade-up">
+          <div class="step-num">4</div>
+          <h3>Complete &amp; Pass</h3>
+          <p>Finish the course and pass the written exam to demonstrate your knowledge.</p>
+        </div>
+        <div class="step-arrow fade-up">&#9654;</div>
+        <div class="step step-final fade-up">
+          <div class="step-num step-num--gold">5</div>
+          <h3>Oral Exam &amp; Certified</h3>
+          <p>Schedule an oral examination with the Director of Judging. Pass and receive your official license.</p>
+        </div>
+      </div>
+
+      </div><!-- end steps bg -->
+
+      <!-- CTA Banner -->
+      <div class="cta-banner fade-up">
+        <div class="cta-banner-inner">
+          <h2>Become an Official USA Streetlifting Judge</h2>
+          <p>Licensed judges are trained to apply standardized rules with consistency and integrity, ensuring fair competition across all sanctioned meets.</p>
+          <button data-nav="register" class="btn btn-primary btn-glow guest-only">Apply Now</button>
+          <button data-nav="dashboard" class="btn btn-primary btn-glow logged-only hidden">Go to Dashboard</button>
+        </div>
+      </div>
+
+      <!-- Certification levels -->
+      <div class="section-photo-bg" style="--bg-img: url('https://usastreetlifting.org/wp-content/uploads/2025/03/Miguel-Robles-Returns-819x1024.jpg')">
+      <div class="section-header fade-up">
+        <h2>Judging License Levels</h2>
+        <p class="muted">A hierarchy system based on knowledge and experience</p>
+      </div>
+      <div class="levels-grid">
+        <div class="level-card fade-up">
+          <div class="level-badge">0</div>
+          <div class="level-connector"></div>
+          <h3>Level 0 <span class="level-price">$29</span></h3>
+          <p>The entry point into USA Streetlifting judging. This course covers the full standards for the <strong>Pull</strong> and the <strong>Dip</strong> — what counts as a good rep, what a no-rep looks like, and how to deliver a clear call.</p>
+          <div class="level-tag">Entry · Pull &amp; Dip</div>
+        </div>
+        <div class="level-card fade-up">
+          <div class="level-badge">1</div>
+          <div class="level-connector"></div>
+          <h3>Level 1 <span class="level-price">$39</span></h3>
+          <p>Builds on Level 0 and adds the <strong>Muscle Up</strong> and the <strong>Back Squat</strong>. After completing this course you are qualified to judge all four competition movements at any sanctioned USA Streetlifting meet.</p>
+          <div class="level-tag">Foundational · All 4 Movements</div>
+        </div>
+        <div class="level-card level-card--soon fade-up">
+          <div class="level-badge">2</div>
+          <div class="level-connector"></div>
+          <h3>Level 2 <span class="level-soon-badge">Coming Soon</span></h3>
+          <p>Extends Level 1 with complete knowledge of <strong>technical infractions, equipment rules, and Head Judge responsibilities</strong>. This certification will be required to serve as Head Judge at sanctioned competitions.</p>
+          <div class="level-tag">Advanced · Head Judge</div>
+        </div>
+        <div class="level-card level-card--top fade-up">
+          <div class="level-badge level-badge--gold">3</div>
+          <h3>Level 3</h3>
+          <p>Not a course certification. Awarded exclusively based on <strong>proven experience</strong> — consistently accurate judging and strict rule enforcement across multiple sanctioned meets.</p>
+          <div class="level-tag level-tag--gold">Experience Only</div>
+        </div>
+      </div>
+      </div><!-- end levels bg -->
+
+      <!-- About the sport / official website CTA -->
+      <div style="background:linear-gradient(135deg,rgba(19,46,132,.18),rgba(192,57,43,.12));border-top:1px solid rgba(255,255,255,.07);padding:5rem 1.5rem;text-align:center;">
+        <div style="max-width:700px;margin:0 auto;">
+          <img src="https://usastreetlifting.org/wp-content/uploads/2024/08/cropped-USA-Streetlifting-Transparent-File-PNG-1.png" alt="USA Streetlifting" style="height:64px;margin-bottom:1.5rem;opacity:.9;">
+          <h2 style="font-family:var(--font-heading);font-size:2rem;margin-bottom:.75rem;">Learn More About the Sport</h2>
+          <p style="color:var(--clr-muted);font-size:1rem;line-height:1.7;margin-bottom:2rem;">Discover upcoming competitions, athlete rankings, official rules, and everything happening in the USA Streetlifting community — all on the official website.</p>
+          <a href="https://usastreetlifting.org" target="_blank" rel="noopener" class="btn btn-primary btn-glow" style="font-size:1rem;padding:.85rem 2.5rem;">Visit USAStreetlifting.org →</a>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- REGISTER -->
+    <section id="page-register" class="page">
+      <div class="form-container slide-in">
+        <h2>Judge Application</h2>
+        <form id="register-form">
+          <div class="input-group">
+            <label for="reg-name">Full Legal Name</label>
+            <input id="reg-name" type="text" required minlength="2" maxlength="100" autocomplete="name" placeholder="John Doe" />
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="reg-email">Email</label>
+            <input id="reg-email" type="email" required autocomplete="email" placeholder="you@example.com" />
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="reg-state">State</label>
+            <select id="reg-state" required class="select-input">
+              <option value="">Select your state...</option>
+              <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+              <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+              <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+              <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+              <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+              <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+              <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+              <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+              <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+              <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+              <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+              <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+              <option>Wisconsin</option><option>Wyoming</option>
+            </select>
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="reg-experience">Judging / Lifting Experience</label>
+            <textarea id="reg-experience" class="textarea-input" rows="3" placeholder="Briefly describe any relevant experience..." maxlength="500"></textarea>
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="reg-password">Password</label>
+            <div class="password-wrap">
+              <input id="reg-password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Min 8 characters" />
+              <button type="button" class="toggle-pw" data-toggle-pw="reg-password">Show</button>
+            </div>
+            <div class="input-underline"></div>
+            <div class="password-strength">
+              <div class="pw-bar" id="pw-bar"></div>
+            </div>
+            <span class="pw-label" id="pw-label"></span>
+          </div>
+          <div id="register-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full btn-glow" id="register-btn">
+            <span class="btn-text">Register</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </form>
+        <p class="switch-link">Already have an account? <a data-nav="login">Login</a></p>
+      </div>
+    </section>
+
+    <!-- LOGIN -->
+    <section id="page-login" class="page">
+      <div class="form-container slide-in">
+        <h2>Login</h2>
+        <form id="login-form">
+          <div class="input-group">
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" required autocomplete="email" placeholder="you@example.com" />
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <div class="password-wrap">
+              <input id="login-password" type="password" required autocomplete="current-password" placeholder="Your password" />
+              <button type="button" class="toggle-pw" data-toggle-pw="login-password">Show</button>
+            </div>
+            <div class="input-underline"></div>
+          </div>
+          <div id="login-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full btn-glow" id="login-btn">
+            <span class="btn-text">Login</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </form>
+        <p class="switch-link">Don't have an account? <a data-nav="register">Register</a></p>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page">
+      <div class="dash-container slide-in">
+        <div class="dash-header">
+          <div class="avatar-upload-wrap" id="avatar-upload-wrap" title="Click to upload photo" style="position:relative;cursor:pointer;">
+            <div class="avatar" id="dash-avatar"></div>
+            <div class="avatar-upload-overlay" style="position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:.65rem;color:#fff;text-align:center;line-height:1.3;pointer-events:none;">Change<br>Photo</div>
+          </div>
+          <input id="avatar-file-input" type="file" accept="image/jpeg,image/png,image/webp" style="display:none;">
+          <div>
+            <h2>Welcome, <span id="dash-name"></span></h2>
+            <p class="dash-email" id="dash-email"></p>
+          </div>
+        </div>
+
+        <!-- Certification Status Card -->
+        <div class="cert-card fade-up">
+          <div class="cert-card-inner">
+            <div class="cert-badge" id="cert-badge">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#333" stroke-width="3"/>
+                <circle cx="40" cy="40" r="36" fill="none" stroke="var(--clr-primary)" stroke-width="3"
+                  stroke-dasharray="226" stroke-dashoffset="226" id="cert-progress"/>
+                <text x="40" y="44" text-anchor="middle" fill="var(--clr-text)" font-family="Oswald" font-size="16" id="cert-level">--</text>
+              </svg>
+            </div>
+            <div class="cert-info">
+              <h3>Judge Certification</h3>
+              <p class="cert-status" id="cert-status">No certification yet</p>
+              <p class="muted" id="cert-detail">Complete payment to begin the certification process.</p>
+            </div>
+          </div>
+          <button data-nav="payment" class="btn btn-primary btn-glow btn-sm" id="cert-action-btn">Start Certification</button>
+        </div>
+
+        <div class="dash-section fade-up">
+          <h3>Payment &amp; Certification History</h3>
+          <div id="payment-history">
+            <div class="skeleton-loader">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+          </div>
+        </div>
+
+        <button data-nav="payment" class="btn btn-primary btn-glow">Pay Certification Fee</button>
+
+        <div class="dash-section fade-up" style="margin-top:2rem;">
+          <h3>Competition History</h3>
+          <p class="muted" style="font-size:.88rem;margin-bottom:1rem;">Log the competitions you have judged.</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+            <input id="ch-name" type="text" placeholder="Competition name" style="flex:2;min-width:140px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+            <input id="ch-date" type="date" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+            <input id="ch-location" type="text" placeholder="City, State" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+            <input id="ch-role" type="text" placeholder="Role (Judge, Head Judge…)" style="flex:2;min-width:140px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+            <button id="ch-add-btn" class="btn btn-primary" style="padding:.45rem 1rem;">Add</button>
+          </div>
+          <div id="comp-history-list"></div>
+        </div>
+
+        <div class="dash-section fade-up" style="margin-top:2.5rem;border-top:1px solid rgba(255,255,255,.07);padding-top:2rem;">
+          <h3 style="color:#f87171;">Danger Zone</h3>
+          <p class="muted" style="margin-bottom:1rem;font-size:.9rem;">Permanently delete your account and all associated data. This cannot be undone.</p>
+          <button data-action="delete-account" class="btn" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);">Delete My Account</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAYMENT -->
+    <section id="page-payment" class="page">
+      <div class="pay-container slide-in">
+        <h2>Certification Payment</h2>
+        <p>Select your certification level below and complete payment via Venmo.</p>
+
+        <div id="payment-options" class="pay-options">
+          <div class="skeleton-loader">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+
+        <div id="venmo-link-area" class="venmo-area hidden">
+          <div class="checkmark-circle">
+            <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="25" fill="none"/><path fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/></svg>
+          </div>
+          <h3>Complete Your Payment</h3>
+          <p id="venmo-amount" class="venmo-amount-text"></p>
+          <div class="venmo-btns">
+            <a id="venmo-web" href="#" target="_blank" rel="noopener" class="btn btn-venmo btn-glow">Pay with Venmo (Web)</a>
+            <a id="venmo-app" href="#" class="btn btn-outline btn-glow">Open Venmo App</a>
+          </div>
+          <p class="muted">After payment is confirmed, your certification status will be updated on your dashboard.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="page-about" class="page">
+
+      <!-- About hero banner -->
+      <div class="about-hero section-photo-bg" style="--bg-img: url('https://usastreetlifting.org/wp-content/uploads/2026/01/PWRBLDMEDIA-04202.jpg')">
+        <div class="about-hero-inner fade-up">
+          <div class="hero-eyebrow" style="justify-content:center">About</div>
+          <h1>USA Streetlifting<br><span style="color:var(--clr-primary)">Judge Certification</span></h1>
+          <p>Building a nationwide network of certified judges who uphold a single, unified standard — at every meet, in every state.</p>
+        </div>
+      </div>
+
+      <!-- Mission + Vision -->
+      <div class="about-mission-grid fade-up">
+        <div class="about-mission-card">
+          <div class="about-mission-icon">🎯</div>
+          <h3>Our Mission</h3>
+          <p>Judges are foundational to the integrity and growth of the sport. As streetlifting evolves into a nationally recognized discipline, athletes must be evaluated under a unified, objective standard — regardless of location or event size.</p>
+        </div>
+        <div class="about-mission-card">
+          <div class="about-mission-icon">🌎</div>
+          <h3>Our Vision</h3>
+          <p>Develop a nationwide network of certified judges who are trained, tested, and consistently held to high standards. These individuals ensure fairness, uphold technical standards, and elevate the legitimacy of the sport across every sanctioned meet — year after year.</p>
+        </div>
+      </div>
+
+      <!-- Director of Judging -->
+      <div class="about-director fade-up">
+        <div class="about-director-photo-wrap">
+          <img src="https://usastreetlifting.org/wp-content/uploads/2026/01/PWRBLDMEDIA-04202.jpg" alt="Theo Lopez Marques" class="about-director-photo" />
+          <div class="about-director-photo-badge">Director of Judging</div>
+        </div>
+        <div class="about-director-info">
+          <div class="hero-eyebrow" style="margin-bottom:.8rem">Meet the Director</div>
+          <h2>Théo Lopez Marques</h2>
+          <p class="about-director-title">National Champion &amp; Director of Judging — USA Streetlifting</p>
+          <p>Théo is responsible for overseeing judging at sanctioned state and national competitions, supporting and supervising judges during events, and contributing to the development of the official judging course and certification system.</p>
+          <p>He also serves as an advisor on the State Chair Committee. His work is informed by his background as an official USA Streetlifting National Champion with years of top-level competition experience.</p>
+          <div class="about-director-roles">
+            <div class="about-role-tag">🏆 National Champion</div>
+            <div class="about-role-tag">📋 Judging Course Author</div>
+            <div class="about-role-tag">🏛 State Chair Advisor</div>
+          </div>
+          <a href="mailto:usastreetlifting.judging@gmail.com" class="btn btn-primary btn-glow" style="margin-top:1.5rem;display:inline-block">Contact Théo</a>
+        </div>
+      </div>
+
+      <!-- Principles -->
+      <div class="about-principles fade-up">
+        <h2 class="about-principles-title">Core Principles</h2>
+        <div class="about-principles-grid">
+          <div class="about-principle-card">
+            <span class="about-principle-icon" style="color:var(--clr-primary)">◆</span>
+            <h3>Clarity</h3>
+            <p>Rules and movement standards communicated clearly to all athletes, coaches, and event staff to prevent confusion and ensure fair competition.</p>
+          </div>
+          <div class="about-principle-card">
+            <span class="about-principle-icon" style="color:var(--clr-blue)">⚖</span>
+            <h3>Consistency</h3>
+            <p>All judges apply the rules to the same degree of strictness — ensuring integrity and uniformity across every level of competition.</p>
+          </div>
+          <div class="about-principle-card">
+            <span class="about-principle-icon" style="color:#4cd964">🌐</span>
+            <h3>Nationwide Network</h3>
+            <p>Building a growing network of certified judges across all 50 states to support every sanctioned meet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="about-cta fade-up">
+        <h2>Ready to Get Involved?</h2>
+        <p>Apply to become a certified USA Streetlifting judge and help uphold the standard of the sport.</p>
+        <div class="hero-btns" style="justify-content:center">
+          <button data-nav="register" class="btn btn-primary btn-glow guest-only">Apply as Judge</button>
+          <button data-nav="dashboard" class="btn btn-primary btn-glow logged-only hidden">My Dashboard</button>
+          <button data-nav="contact" class="btn btn-outline btn-glow">Contact Us</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RULES -->
+    <section id="page-rules" class="page">
+
+      <div class="rules-hero section-photo-bg fade-up" style="--bg-img: url('https://usastreetlifting.org/wp-content/uploads/2025/03/Brian-Shtika-Returns-1-819x1024.jpg')">
+        <div class="rules-hero-inner">
+          <div class="hero-eyebrow" style="justify-content:center">Rulebook v7 — Updated February 2026</div>
+          <h1>Competition <span style="color:var(--clr-primary)">Rules</span></h1>
+          <p>A high-level overview of how USA Streetlifting competitions work. For the complete technical standards, refer to the official rulebook.</p>
+          <a href="https://usastreetlifting.org/wp-content/uploads/2026/02/USASL-Rulebook-V7.pdf" target="_blank" rel="noopener" class="btn btn-primary btn-glow" style="margin-top:1rem;display:inline-block">Download Full Rulebook</a>
+        </div>
+      </div>
+
+      <div class="content-container fade-up">
+
+        <!-- The 4 movements -->
+        <div class="rules-overview-section">
+          <h2 class="rules-overview-title">The Four Movements</h2>
+          <p class="rules-overview-sub">Streetlifting is a competitive weighted calisthenics sport. Athletes compete for a one-rep max in four movements. Click each to see the key standards.</p>
+          <div class="movements-grid" style="border-radius:var(--radius);overflow:hidden;max-width:100%">
+            <div class="movement-card fade-up" data-movement="muscleup">
+              <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Abu-Asada-Returns-819x1024.jpg" alt="Muscle Up" />
+              <div class="movement-label">Muscle Up</div>
+              <div class="movement-tap-hint">Tap for rules</div>
+            </div>
+            <div class="movement-card fade-up" data-movement="pull">
+              <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Lincoln-Black-Returns-819x1024.jpg" alt="Pull" />
+              <div class="movement-label">Pull</div>
+              <div class="movement-tap-hint">Tap for rules</div>
+            </div>
+            <div class="movement-card fade-up" data-movement="dip">
+              <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Brian-Shtika-Returns-1-819x1024.jpg" alt="Dip" />
+              <div class="movement-label">Dip</div>
+              <div class="movement-tap-hint">Tap for rules</div>
+            </div>
+            <div class="movement-card fade-up" data-movement="squat">
+              <img src="https://usastreetlifting.org/wp-content/uploads/2025/03/Miguel-Robles-Returns-819x1024.jpg" alt="Squat" />
+              <div class="movement-label">Squat</div>
+              <div class="movement-tap-hint">Tap for rules</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- How judging works -->
+        <div class="rules-overview-section">
+          <h2 class="rules-overview-title">How Judging Works</h2>
+          <div class="rules-info-grid">
+            <div class="rules-info-card">
+              <div class="rules-info-num">3</div>
+              <h3>Judges Per Attempt</h3>
+              <p>Every attempt is evaluated by three certified judges simultaneously, each issuing an independent decision.</p>
+            </div>
+            <div class="rules-info-card">
+              <div class="rules-info-num">3/3</div>
+              <h3>Unanimous Required</h3>
+              <p>For most criteria, all 3 judges must agree for the lift to count. A single no-rep call on any standard criteria fails the attempt. A 2/3 majority applies only to shoulder depth (dip) and squat depth.</p>
+            </div>
+            <div class="rules-info-card">
+              <div class="rules-info-num">3</div>
+              <h3>Attempts Per Lift</h3>
+              <p>Each athlete gets three attempts per lift to achieve their best result.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- General principles -->
+        <div class="rules-overview-section">
+          <h2 class="rules-overview-title">General Standards</h2>
+          <div class="rules-standards-grid">
+            <div class="rules-standard">
+              <span class="rules-standard-icon" style="color:var(--clr-primary)">◆</span>
+              <div>
+                <h4>Strict Form</h4>
+                <p>No kipping, swinging, or momentum-assisted movement on any lift.</p>
+              </div>
+            </div>
+            <div class="rules-standard">
+              <span class="rules-standard-icon" style="color:var(--clr-blue)">◆</span>
+              <div>
+                <h4>Judge Signals</h4>
+                <p>Athletes must wait for and respond to all Head Judge commands — missing a signal results in a no-rep.</p>
+              </div>
+            </div>
+            <div class="rules-standard">
+              <span class="rules-standard-icon" style="color:var(--clr-primary)">◆</span>
+              <div>
+                <h4>Equipment</h4>
+                <p>Approved weight belt required. Chalk and wrist wraps allowed. Gloves are not permitted.</p>
+              </div>
+            </div>
+            <div class="rules-standard">
+              <span class="rules-standard-icon" style="color:var(--clr-blue)">◆</span>
+              <div>
+                <h4>Weight Classes</h4>
+                <p>Athletes compete in bodyweight-based divisions. Weigh-ins take place the morning of competition.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-rulebook-cta">
+          <p>This is a summary only. All technical standards, edge cases, and complete judging criteria are defined in the official rulebook.</p>
+          <a href="https://usastreetlifting.org/wp-content/uploads/2026/02/USASL-Rulebook-V7.pdf" target="_blank" rel="noopener" class="btn btn-primary btn-glow">Download Full Rulebook (v7)</a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="page-profile" class="page">
+      <div class="form-container slide-in" style="max-width:520px">
+        <h2>My Profile</h2>
+
+        <div class="profile-header">
+          <div class="avatar avatar-lg" id="profile-avatar"></div>
+          <div>
+            <p class="profile-name" id="profile-display-name"></p>
+            <p class="muted" id="profile-display-email"></p>
+            <p class="muted profile-joined" id="profile-joined"></p>
+          </div>
+        </div>
+
+        <form id="profile-form">
+          <div class="input-group">
+            <label for="profile-name">Full Name</label>
+            <input id="profile-name" type="text" required minlength="2" maxlength="100" />
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="profile-email">Email</label>
+            <input id="profile-email" type="email" disabled class="input-disabled" />
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="profile-phone">Phone (optional)</label>
+            <input id="profile-phone" type="tel" maxlength="20" placeholder="(555) 123-4567" />
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="profile-state">State</label>
+            <select id="profile-state" class="select-input">
+              <option value="">Select your state...</option>
+              <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+              <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+              <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+              <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+              <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+              <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+              <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+              <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+              <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+              <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+              <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+              <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+              <option>Wisconsin</option><option>Wyoming</option>
+            </select>
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="profile-experience">Judging / Lifting Experience</label>
+            <textarea id="profile-experience" class="textarea-input" rows="3" maxlength="500"></textarea>
+            <div class="input-underline"></div>
+          </div>
+          <div id="profile-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full btn-glow" id="profile-save-btn">
+            <span class="btn-text">Save Changes</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </form>
+
+        <hr class="divider" />
+
+        <h3 class="subsection-title">Change Password</h3>
+        <form id="password-form">
+          <div class="input-group">
+            <label for="pw-current">Current Password</label>
+            <div class="password-wrap">
+              <input id="pw-current" type="password" required autocomplete="current-password" />
+              <button type="button" class="toggle-pw" data-toggle-pw="pw-current">Show</button>
+            </div>
+            <div class="input-underline"></div>
+          </div>
+          <div class="input-group">
+            <label for="pw-new">New Password</label>
+            <div class="password-wrap">
+              <input id="pw-new" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
+              <button type="button" class="toggle-pw" data-toggle-pw="pw-new">Show</button>
+            </div>
+            <div class="input-underline"></div>
+            <div class="password-strength"><div class="pw-bar" id="pw-bar"></div></div>
+            <span class="pw-label" id="pw-label"></span>
+          </div>
+          <div class="input-group">
+            <label for="pw-confirm">Confirm New Password</label>
+            <div class="password-wrap">
+              <input id="pw-confirm" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
+              <button type="button" class="toggle-pw" data-toggle-pw="pw-confirm">Show</button>
+            </div>
+            <div class="input-underline"></div>
+          </div>
+          <div id="password-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-outline btn-full" id="password-btn">
+            <span class="btn-text">Change Password</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="page-contact" class="page">
+      <div class="content-container fade-up">
+        <h1 class="page-title">Contact Us</h1>
+        <div class="contact-grid">
+          <div class="contact-form-wrap">
+            <p>Have questions about certification, competitions, or anything else? Send us a message and we'll get back to you as soon as possible.</p>
+            <form id="contact-form">
+              <div class="input-group">
+                <label for="contact-name">Your Name</label>
+                <input id="contact-name" type="text" required maxlength="100" placeholder="John Doe" />
+                <div class="input-underline"></div>
+              </div>
+              <div class="input-group">
+                <label for="contact-email">Your Email</label>
+                <input id="contact-email" type="email" required placeholder="you@example.com" />
+                <div class="input-underline"></div>
+              </div>
+              <div class="input-group">
+                <label for="contact-subject">Subject</label>
+                <select id="contact-subject" class="select-input" required>
+                  <option value="">Select a topic...</option>
+                  <option value="certification">Judge Certification</option>
+                  <option value="competition">Competition Inquiry</option>
+                  <option value="payment">Payment Issue</option>
+                  <option value="technical">Technical Support</option>
+                  <option value="other">Other</option>
+                </select>
+                <div class="input-underline"></div>
+              </div>
+              <div class="input-group">
+                <label for="contact-message">Message</label>
+                <textarea id="contact-message" class="textarea-input" rows="5" required maxlength="2000" placeholder="Describe your question or issue..."></textarea>
+                <div class="input-underline"></div>
+              </div>
+              <div id="contact-error" class="error-msg"></div>
+              <button type="submit" class="btn btn-primary btn-full btn-glow" id="contact-btn">
+                <span class="btn-text">Send Message</span>
+                <span class="btn-spinner hidden"></span>
+              </button>
+            </form>
+          </div>
+          <div class="contact-info">
+            <div class="contact-info-card">
+              <h3>&#9993; Email</h3>
+              <p>usastreetlifting@gmail.com</p>
+            </div>
+            <div class="contact-info-card">
+              <h3>&#9742; Phone</h3>
+              <p>(555) 123-4567</p>
+            </div>
+            <div class="contact-info-card">
+              <h3>&#9872; Headquarters</h3>
+              <p>USA Streetlifting Federation<br>PO Box 12345<br>Dallas, TX 75001</p>
+            </div>
+            <div class="contact-info-card">
+              <h3>&#128337; Hours</h3>
+              <p>Mon – Fri: 9 AM – 5 PM CT<br>Weekends: Closed</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COURSE -->
+    <section id="page-course" class="page">
+      <div class="course-container slide-in" id="course-content">
+        <p class="muted" style="text-align:center;padding:3rem;">Loading your course…</p>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="page-admin" class="page">
+      <div class="admin-container slide-in">
+        <div class="admin-header">
+          <div>
+            <h2>Admin Panel <span class="admin-badge">★ Admin</span></h2>
+            <p class="muted">All registered judges and their certification status</p>
+          </div>
+        </div>
+        <div id="admin-content"></div>
+      </div>
+    </section>
+
+    <!-- JUDGE DIRECTORY -->
+    <section id="page-directory" class="page">
+      <div class="container slide-in" style="max-width:900px;margin:0 auto;padding:6rem 1.5rem 4rem;">
+        <h2 style="font-family:var(--font-heading);font-size:2rem;margin-bottom:.5rem;">Judge Directory</h2>
+        <p class="muted" style="margin-bottom:2rem;">Find certified USA Streetlifting judges by state.</p>
+        <input id="directory-search" type="text" placeholder="Search by name or state…" style="width:100%;padding:.75rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:1rem;margin-bottom:1.5rem;">
+        <div id="directory-content"></div>
+      </div>
+    </section>
+
+    <!-- EVENTS PAGE -->
+    <section id="page-events" class="page">
+      <div class="container slide-in" style="max-width:900px;margin:0 auto;padding:6rem 1.5rem 4rem;">
+        <h2 style="font-family:var(--font-heading);font-size:2rem;margin-bottom:.5rem;">Upcoming Competitions</h2>
+        <p class="muted" style="margin-bottom:2rem;">Register to judge at sanctioned USA Streetlifting events.</p>
+        <div id="events-content"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ USER DETAIL PANEL ============ -->
+  <div id="user-detail-overlay" class="user-detail-overlay">
+    <div class="user-detail-drawer" id="user-detail-drawer">
+      <button id="user-detail-close" class="user-detail-close" aria-label="Close">&times;</button>
+      <div id="user-detail-panel"></div>
+    </div>
+  </div>
+
+    <!-- JUDGE PROFILE PAGE -->
+    <section id="page-judge-profile" class="page">
+      <div class="container slide-in" style="max-width:700px;margin:0 auto;padding:6rem 1.5rem 4rem;">
+        <div id="judge-profile-content"><p class="muted" style="text-align:center;">Loading…</p></div>
+      </div>
+    </section>
+
+    <!-- CHAT PAGE -->
+    <section id="page-chat" class="page">
+      <div style="max-width:960px;margin:0 auto;padding:6rem 1.5rem 2rem;">
+        <h2 style="font-family:var(--font-heading);font-size:2rem;margin-bottom:.25rem;">Judge Chat</h2>
+        <p class="muted" style="margin-bottom:1.5rem;">Group chat for all USASL judges and the Director.</p>
+        <div style="display:flex;gap:1rem;align-items:flex-start;">
+          <!-- Room sidebar -->
+          <div id="chat-rooms" style="width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:.35rem;"></div>
+          <!-- Chat area -->
+          <div style="flex:1;min-width:0;">
+            <div id="chat-box" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;height:460px;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;"></div>
+            <div style="display:flex;gap:.75rem;">
+              <input id="chat-input" type="text" placeholder="Type a message…" maxlength="500" style="flex:1;padding:.65rem .9rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.95rem;">
+              <button id="chat-send-btn" class="btn btn-primary" style="padding:.65rem 1.2rem;">Send</button>
+            </div>
+            <p style="font-size:.75rem;color:var(--clr-muted);margin-top:.5rem;text-align:right;" id="chat-char-count">0 / 500</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  <!-- ============ EMAIL VERIFICATION MODAL ============ -->
+  <div id="verify-modal" class="rules-modal-overlay" aria-hidden="true" style="z-index:3000;">
+    <div class="rules-modal" style="max-width:420px;text-align:center;">
+      <h2 style="font-family:var(--font-heading);margin-bottom:.5rem;">Verify your email</h2>
+      <p style="color:var(--clr-muted);margin-bottom:1.5rem;">We sent a 6-digit code to your email address. Enter it below.</p>
+      <input id="verify-code-input" type="text" maxlength="6" placeholder="000000"
+        style="width:160px;text-align:center;font-size:2rem;letter-spacing:.5rem;padding:.5rem;border-radius:8px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;margin-bottom:1rem;">
+      <br>
+      <button id="verify-submit-btn" class="btn btn-primary btn-glow" style="margin-top:.5rem;">Verify</button>
+      <p id="verify-error" style="color:#f87171;margin-top:.75rem;font-size:.88rem;"></p>
+    </div>
+  </div>
+
+  <!-- ============ VIDEO PLAYER MODAL ============ -->
+  <div id="video-modal" class="video-modal-overlay" aria-hidden="true">
+    <div class="video-modal-inner">
+      <button class="video-modal-close" id="video-modal-close" aria-label="Close">&times;</button>
+      <h3 class="video-modal-title" id="video-modal-title"></h3>
+      <div class="video-modal-player">
+        <video id="video-modal-player" controls playsinline controlsList="nodownload">
+          Your browser does not support video playback.
+        </video>
+      </div>
+      <div id="video-modal-footer" class="video-modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- ============ MOVEMENT RULES MODAL ============ -->
+  <div id="rules-modal" class="rules-modal-overlay" aria-hidden="true">
+    <div class="rules-modal">
+      <button class="rules-modal-close" id="rules-modal-close" aria-label="Close">&times;</button>
+      <div class="rules-modal-header">
+        <div class="rules-modal-badge" id="rules-modal-badge"></div>
+        <h2 id="rules-modal-title"></h2>
+      </div>
+      <div class="rules-modal-body" id="rules-modal-body"></div>
+      <p class="rules-modal-footer">Full technical details are covered in the <strong>USA Streetlifting Judging Course</strong>.</p>
+    </div>
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a data-nav="about">About</a>
+        <a data-nav="rules">Rules</a>
+        <a data-nav="contact">Contact</a>
+      </div>
+      <p>&copy; 2026 USA Streetlifting Federation. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/app.js"></script>
+  <!-- Capacitor: only present in native app builds -->
+  <script>
+    if (window.Capacitor) {
+      (function() {
+        var s = document.createElement('script');
+        s.src = 'capacitor.js';
+        document.head.appendChild(s);
+      })();
+    }
+  </script>
+</body>
+</html>

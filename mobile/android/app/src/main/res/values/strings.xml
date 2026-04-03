@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">USASL Judges</string>
+    <string name="title_activity_main">USASL Judges</string>
+    <string name="package_name">org.usastreetlifting.judges</string>
+    <string name="custom_url_scheme">org.usastreetlifting.judges</string>
+</resources>

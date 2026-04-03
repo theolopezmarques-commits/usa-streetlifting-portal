@@ -1,0 +1,26 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:dev": "bash build.sh",
+    "build:prod": "bash build.sh https://YOUR-RAILWAY-URL.up.railway.app",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android",
+    "sync": "npx cap sync"
+  },
+  "keywords": [],
+  "author": "USA Streetlifting",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  }
+}
