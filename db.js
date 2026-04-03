@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DB_PATH = path.join(__dirname, 'streetlifting.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'streetlifting.db');
 const ALGO = 'aes-256-gcm';
 let db;
 let dbReady;
