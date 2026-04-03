@@ -1,3 +1,10 @@
 node_modules/
 .env
 *.db
+*.db.bak
+*.db.old
+.DS_Store
+public/Videos/
+public/index.html.new
+.claude/
+uploads/
