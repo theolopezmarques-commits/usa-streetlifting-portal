@@ -33,7 +33,7 @@ router.post('/create-checkout', async (req, res) => {
     return res.status(400).json({ error: 'Invalid payment option.' });
   }
 
-  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+  const baseUrl = (process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`).trim();
 
   try {
     const successUrl = `${baseUrl}/?payment=success`;
