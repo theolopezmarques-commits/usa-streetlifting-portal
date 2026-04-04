@@ -1550,95 +1550,61 @@ main { flex: 1; }
   font-style: italic;
 }
 
-/* ===== ATHLETE SPLIT SECTION ===== */
-.athlete-split {
-  display: flex;
-  min-height: 520px;
+/* ===== ATHLETE SECTION ===== */
+.athlete-section {
   border-top: 1px solid rgba(255,255,255,.07);
   border-bottom: 1px solid rgba(255,255,255,.07);
 }
-.athlete-split-photo {
-  flex: 0 0 40%;
-  background-size: cover;
-  background-position: center top;
-  position: relative;
-  min-height: 380px;
+.athlete-section-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 5rem 1.5rem;
+  text-align: center;
 }
-.athlete-split-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(10,10,20,.15), rgba(10,10,20,.6));
-}
-.athlete-split-tag {
-  position: absolute;
-  top: 1.5rem;
-  left: 1.5rem;
-  background: var(--clr-primary);
-  color: #fff;
-  font-size: .7rem;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  padding: .35rem .85rem;
-  border-radius: 2px;
-}
-.athlete-split-content {
-  flex: 1;
-  padding: 4rem 3.5rem 4rem 4rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(12,14,26,.95) 0%, rgba(18,22,40,.98) 100%);
-}
-.athlete-split-content h2 {
+.athlete-section-inner h2 {
   font-family: var(--font-heading);
-  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
   line-height: 1.2;
   margin: .6rem 0 1.2rem;
 }
-.athlete-split-content > p {
+.athlete-section-lead {
   color: var(--clr-muted);
-  font-size: .97rem;
+  font-size: 1rem;
   line-height: 1.75;
-  max-width: 520px;
-  margin-bottom: 1.8rem;
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
 }
 .athlete-perks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  text-align: left;
 }
-.athlete-perks li {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+.athlete-perk-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  padding: 1.75rem 1.5rem;
 }
 .athlete-perk-icon {
-  font-size: 1.3rem;
-  line-height: 1;
-  margin-top: .1rem;
-  flex-shrink: 0;
-}
-.athlete-perks li div strong {
+  font-size: 1.6rem;
+  margin-bottom: .75rem;
   display: block;
-  font-size: .92rem;
-  font-weight: 700;
-  color: var(--clr-text);
-  margin-bottom: .2rem;
 }
-.athlete-perks li div p {
+.athlete-perk-card h3 {
+  font-size: .95rem;
+  font-weight: 700;
+  margin-bottom: .5rem;
+  color: var(--clr-text);
+}
+.athlete-perk-card p {
   margin: 0;
-  font-size: .85rem;
+  font-size: .87rem;
   color: var(--clr-muted);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 @media (max-width: 768px) {
-  .athlete-split { flex-direction: column; }
-  .athlete-split-photo { flex: none; height: 260px; }
-  .athlete-split-content { padding: 2.5rem 1.5rem; }
+  .athlete-perks { grid-template-columns: 1fr; }
 }
 
 /* ===== CTA BANNER ===== */
