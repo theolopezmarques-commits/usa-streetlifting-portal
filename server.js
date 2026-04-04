@@ -72,6 +72,13 @@ const authLimiter = rateLimit({
 // --------------- Static files ---------------
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve avatars from volume in production, fallback to public/avatars locally
+if (process.env.DATA_DIR) {
+  const avatarDir = path.join(process.env.DATA_DIR, 'avatars');
+  if (!require('fs').existsSync(avatarDir)) require('fs').mkdirSync(avatarDir, { recursive: true });
+  app.use('/avatars', express.static(avatarDir));
+}
+
 // --------------- API routes ---------------
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/payment', authMiddleware, paymentRoutes);
