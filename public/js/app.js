@@ -1823,23 +1823,23 @@ async function loadCourse() {
 
 const COURSE_VIDEOS = {
   0: [
-    { title: 'Course Overview', file: 'Course Overview.mov' },
-    { title: 'Introduction',    file: 'Introduction.mov' },
-    { title: 'Judging System',  file: 'Judging System.mov' },
-    { title: 'Pulls',           file: 'Pulls.mov' },
-    { title: 'Dips',            file: 'DIPS.mov' },
-    { title: 'Conclusion',      file: 'Conclusion.mov' },
+    { title: 'Course Overview', file: 'Course Overview.mp4' },
+    { title: 'Introduction',    file: 'Introduction.mp4' },
+    { title: 'Judging System',  file: 'Judging System.mp4' },
+    { title: 'Pulls',           file: 'Pulls.mp4' },
+    { title: 'Dips',            file: 'DIPS.mp4' },
+    { title: 'Conclusion',      file: 'Conclusion.mp4' },
   ],
   1: [
-    { title: 'Course Overview', file: 'Course Overview.mov' },
-    { title: 'Introduction',    file: 'Introduction.mov' },
-    { title: 'Judging System',  file: 'Judging System.mov' },
-    { title: 'Bar Muscle Up',   file: 'Bar Muscle Up.mov' },
-    { title: 'Ring Muscle Up',  file: 'Ring Muscle Up.mov' },
-    { title: 'Pulls',           file: 'Pulls.mov' },
-    { title: 'Dips',            file: 'DIPS.mov' },
-    { title: 'Squats',          file: 'Squats.mov' },
-    { title: 'Conclusion',      file: 'Conclusion.mov' },
+    { title: 'Course Overview', file: 'Course Overview.mp4' },
+    { title: 'Introduction',    file: 'Introduction.mp4' },
+    { title: 'Judging System',  file: 'Judging System.mp4' },
+    { title: 'Bar Muscle Up',   file: 'Bar Muscle Up.mp4' },
+    { title: 'Ring Muscle Up',  file: 'Ring Muscle Up.mp4' },
+    { title: 'Pulls',           file: 'Pulls.mp4' },
+    { title: 'Dips',            file: 'DIPS.mp4' },
+    { title: 'Squats',          file: 'Squats.mp4' },
+    { title: 'Conclusion',      file: 'Conclusion.mp4' },
   ],
 };
 COURSE_VIDEOS[2] = COURSE_VIDEOS[1]; // Level 2 uses same videos for now
@@ -1880,7 +1880,7 @@ function renderCourseLevel(level, prog, isAdmin) {
     const cardClass = done ? 'completed' : (unlocked ? 'unlocked' : 'locked');
     const statusText = done ? '✓ Watched' : (unlocked ? 'Click to watch' : '🔒 Locked');
     const statusClass = done ? 'done' : (unlocked ? 'unlocked' : 'locked');
-    const src = `/Videos/Level ${level}/${encodeURIComponent(v.file)}`;
+    const src = `https://pub-be06f36754244e97924aad36ac6257af.r2.dev/${encodeURIComponent(v.file)}`;
 
     videoCards += `
       <div class="video-card ${cardClass}" data-video-index="${i}" data-level="${level}" data-src="${src}" style="${unlocked ? 'cursor:pointer;' : ''}">
