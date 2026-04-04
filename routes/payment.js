@@ -36,6 +36,7 @@ router.post('/create-checkout', async (req, res) => {
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
 
   try {
+    console.log('Stripe checkout baseUrl:', baseUrl);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
