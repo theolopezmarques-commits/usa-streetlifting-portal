@@ -36,7 +36,10 @@ router.post('/create-checkout', async (req, res) => {
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
 
   try {
-    console.log('Stripe checkout baseUrl:', baseUrl);
+    const successUrl = `${baseUrl}/?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/?payment=cancelled`;
+    console.log('Stripe success_url:', successUrl);
+    console.log('Stripe cancel_url:', cancelUrl);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -51,8 +54,8 @@ router.post('/create-checkout', async (req, res) => {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `${baseUrl}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${baseUrl}/?payment=cancelled`,
+      success_url: successUrl,
+      cancel_url:  cancelUrl,
       metadata: {
         user_id:     String(req.user.id),
         option_id:   optionId,
@@ -68,7 +71,7 @@ router.post('/create-checkout', async (req, res) => {
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error('Stripe checkout error:', err.message);
+    console.error('Stripe checkout error:', err.message, JSON.stringify(err?.raw || {}));
     res.status(500).json({ error: 'Could not create checkout session.' });
   }
 });
