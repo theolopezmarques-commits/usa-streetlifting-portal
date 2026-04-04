@@ -7,8 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const { dbRun, dbGet } = require('../db');
 
-const AVATAR_DIR = process.env.DATA_DIR
-  ? path.join(process.env.DATA_DIR, 'avatars')
+const AVATAR_DIR = process.env.DB_PATH
+  ? path.join(path.dirname(process.env.DB_PATH), 'avatars')
   : path.join(__dirname, '../public/avatars');
 
 const storage = multer.diskStorage({

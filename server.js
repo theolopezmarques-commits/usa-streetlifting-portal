@@ -73,8 +73,8 @@ const authLimiter = rateLimit({
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve avatars from volume in production, fallback to public/avatars locally
-if (process.env.DATA_DIR) {
-  const avatarDir = path.join(process.env.DATA_DIR, 'avatars');
+if (process.env.DB_PATH) {
+  const avatarDir = path.join(require('path').dirname(process.env.DB_PATH), 'avatars');
   if (!require('fs').existsSync(avatarDir)) require('fs').mkdirSync(avatarDir, { recursive: true });
   app.use('/avatars', express.static(avatarDir));
 }
