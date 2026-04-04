@@ -548,7 +548,7 @@ async function loadPaymentOptions() {
             <div style="font-size:.65rem;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem;">Level 2</div>
             <div style="font-size:.82rem;font-weight:700;margin-bottom:.3rem;">Technical Rules</div>
             <div style="font-size:.72rem;color:var(--clr-muted);">Infractions &amp; equipment</div>
-            <div style="margin-top:.5rem;font-size:.68rem;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:20px;padding:2px 8px;display:inline-block;">Requires Level 1</div>
+            <div style="margin-top:.5rem;font-size:.68rem;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:20px;padding:2px 8px;display:inline-block;">Requires Level 0 or 1</div>
           </div>
         </div>
       </div>`;
@@ -570,7 +570,7 @@ async function loadPaymentOptions() {
         <div class="pay-option-info">
           <span class="pay-option-label">Level 2 – Advanced Certification</span>
           <span class="pay-option-tag">Technical &amp; Equipment Rules</span>
-          <span class="pay-option-desc">Extends Level 1 with full knowledge of technical infractions, equipment rules, and head-judge responsibilities.</span>
+          <span class="pay-option-desc">Covers technical infractions, equipment rules, and head-judge responsibilities. <strong>Requires Level 0 or Level 1</strong> certification before enrolling.</span>
         </div>
         <span class="pay-option-price pay-option-soon">Coming Soon</span>
       </div>`;
