@@ -36,10 +36,8 @@ router.post('/create-checkout', async (req, res) => {
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
 
   try {
-    const successUrl = `${baseUrl}/?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const successUrl = `${baseUrl}/?payment=success`;
     const cancelUrl = `${baseUrl}/?payment=cancelled`;
-    console.log('Stripe success_url:', successUrl);
-    console.log('Stripe cancel_url:', cancelUrl);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{

@@ -589,17 +589,9 @@ async function handleStripeReturn() {
     return;
   }
 
-  if (status === 'success' && sessionId) {
-    showToast('Verifying payment…', 'success');
-    try {
-      await apiFetch(`/api/payment/verify-session?session_id=${encodeURIComponent(sessionId)}`);
-      showToast('Payment confirmed! Your certification is now active.', 'success');
-      navigate('dashboard');
-    } catch {
-      // Payment may still be processing — tell user it'll update shortly
-      showToast('Payment received! Your dashboard will update shortly.', 'success');
-      navigate('dashboard');
-    }
+  if (status === 'success') {
+    showToast('Payment received! Your certification will be activated shortly.', 'success');
+    navigate('dashboard');
   }
 }
 
@@ -1888,7 +1880,7 @@ function renderCourseLevel(level, prog, isAdmin) {
     const cardClass = done ? 'completed' : (unlocked ? 'unlocked' : 'locked');
     const statusText = done ? '✓ Watched' : (unlocked ? 'Click to watch' : '🔒 Locked');
     const statusClass = done ? 'done' : (unlocked ? 'unlocked' : 'locked');
-    const src = `/Videos/Level 1/${encodeURIComponent(v.file)}`;
+    const src = `/Videos/Level ${level}/${encodeURIComponent(v.file)}`;
 
     videoCards += `
       <div class="video-card ${cardClass}" data-video-index="${i}" data-level="${level}" data-src="${src}" style="${unlocked ? 'cursor:pointer;' : ''}">
