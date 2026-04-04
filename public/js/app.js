@@ -476,12 +476,12 @@ function updateCertCard(courseStatus) {
 // ===================== PAYMENT =====================
 const CERT_DESCRIPTIONS = {
   cert_level_0: {
-    tagline: 'Pull & Dip',
-    detail: 'Covers the judging standards for the <strong>Pull</strong> and the <strong>Dip</strong>. You will learn the exact movement requirements, how to spot a no-rep, and how to signal your call. This is the required starting point for all judges.',
+    tagline: 'Classic Format · Pull & Dip',
+    detail: 'Covers the judging standards for the <strong>Pull</strong> and the <strong>Dip</strong>. Perfect if you want to judge <strong>Classic format</strong> competitions only. <em>No prerequisites — start here or go straight to Level 1.</em>',
   },
   cert_level_1: {
-    tagline: 'All 4 Movements',
-    detail: 'Builds on Level 0 and adds the <strong>Muscle Up</strong> and the <strong>Back Squat</strong>. After this course you can judge all four competition movements and officiate at any sanctioned USA Streetlifting meet.',
+    tagline: 'All 4 Movements · Full Format',
+    detail: 'Covers all four movements: <strong>Pull, Dip, Muscle Up</strong> and <strong>Back Squat</strong>. Includes everything in Level 0 plus the additional movements. <strong>No Level 0 required</strong> — you can take this directly and judge any competition format.',
   },
 };
 
@@ -517,7 +517,41 @@ async function loadPaymentOptions() {
       return;
     }
 
-    let html = '';
+    let html = `
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+        <div style="font-size:.8rem;font-weight:700;color:var(--clr-primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;">How it works</div>
+        <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;">
+          <!-- Level 0 -->
+          <div style="flex:1;min-width:140px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:.85rem 1rem;text-align:center;">
+            <div style="font-size:.65rem;font-weight:800;color:#60a5fa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem;">Level 0</div>
+            <div style="font-size:.82rem;font-weight:700;margin-bottom:.3rem;">Classic Format</div>
+            <div style="font-size:.72rem;color:var(--clr-muted);">Pull &amp; Dip only</div>
+            <div style="margin-top:.5rem;font-size:.68rem;background:rgba(96,165,250,.15);color:#60a5fa;border-radius:20px;padding:2px 8px;display:inline-block;">Standalone ✓</div>
+          </div>
+          <!-- OR arrow -->
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 .75rem;color:var(--clr-muted);font-size:.75rem;font-weight:700;gap:.15rem;">
+            <span>OR</span>
+          </div>
+          <!-- Level 1 -->
+          <div style="flex:1;min-width:140px;background:rgba(76,217,100,.08);border:1px solid rgba(76,217,100,.2);border-radius:10px;padding:.85rem 1rem;text-align:center;">
+            <div style="font-size:.65rem;font-weight:800;color:#4cd964;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem;">Level 1</div>
+            <div style="font-size:.82rem;font-weight:700;margin-bottom:.3rem;">Full Format</div>
+            <div style="font-size:.72rem;color:var(--clr-muted);">All 4 movements</div>
+            <div style="margin-top:.5rem;font-size:.68rem;background:rgba(76,217,100,.15);color:#4cd964;border-radius:20px;padding:2px 8px;display:inline-block;">No prereq ✓</div>
+          </div>
+          <!-- THEN arrow -->
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 .75rem;color:var(--clr-muted);font-size:.75rem;font-weight:700;gap:.15rem;">
+            <span>→</span>
+          </div>
+          <!-- Level 2 -->
+          <div style="flex:1;min-width:140px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:.85rem 1rem;text-align:center;opacity:.7;">
+            <div style="font-size:.65rem;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem;">Level 2</div>
+            <div style="font-size:.82rem;font-weight:700;margin-bottom:.3rem;">Technical Rules</div>
+            <div style="font-size:.72rem;color:var(--clr-muted);">Infractions &amp; equipment</div>
+            <div style="margin-top:.5rem;font-size:.68rem;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:20px;padding:2px 8px;display:inline-block;">Requires Level 1</div>
+          </div>
+        </div>
+      </div>`;
     for (const opt of available) {
       const desc = CERT_DESCRIPTIONS[opt.id] || {};
       html += `
