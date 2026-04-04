@@ -2288,34 +2288,31 @@ function renderDirectory(judges) {
     if (!byState[state]) byState[state] = [];
     byState[state].push(j);
   }
-  const levelLabels = { '0': 'Level 0', '1': 'Level 1', '2': 'Level 2', '3': 'Level 3' };
+  const levelColors = { '0': '#60a5fa', '1': '#4cd964', '2': '#f59e0b', '3': '#c0392b' };
   let html = '';
   for (const [state, list] of Object.entries(byState).sort()) {
     html += `<div style="margin-bottom:2.5rem;">
       <h3 style="font-family:var(--font-heading);color:var(--clr-primary);font-size:1rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:.5rem;">${escapeHtml(state)}</h3>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;">`;
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;">`;
     for (const j of list) {
-      const levels = (j.levels || '').split(',').map(l =>
-        `<span style="background:rgba(192,57,43,.2);color:var(--clr-primary);border-radius:4px;padding:2px 8px;font-size:.75rem;font-weight:700;">${levelLabels[l] || 'L' + l}</span>`
-      ).join(' ');
-      const ig = j.instagram ? `<a href="https://instagram.com/${j.instagram.replace('@','')}" target="_blank" rel="noopener" style="color:var(--clr-muted);font-size:.8rem;text-decoration:none;">📸 ${escapeHtml(j.instagram)}</a>` : '';
-      const comps = j.comps_judged > 0 ? `<span style="font-size:.8rem;color:var(--clr-muted);">🏆 ${j.comps_judged} comp${j.comps_judged !== 1 ? 's' : ''} judged</span>` : '';
-      const position = j.position ? `<div style="font-size:.8rem;color:var(--clr-muted);margin-bottom:.4rem;">${escapeHtml(j.position)}</div>` : '';
+      const topLevel = (j.levels || '').split(',').map(Number).filter(n => !isNaN(n));
+      const highest = topLevel.length ? Math.max(...topLevel) : null;
+      const levelBadge = highest !== null
+        ? `<span style="background:${levelColors[highest] || 'var(--clr-primary)'}22;color:${levelColors[highest] || 'var(--clr-primary)'};border:1px solid ${levelColors[highest] || 'var(--clr-primary)'}44;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700;letter-spacing:.04em;">Level ${highest}</span>`
+        : '';
+      const ig = j.instagram ? `<div style="font-size:.78rem;color:var(--clr-muted);margin-top:.3rem;">📸 ${escapeHtml(j.instagram)}</div>` : '';
+      const comps = j.comps_judged > 0 ? `<div style="font-size:.78rem;color:var(--clr-muted);">🏆 ${j.comps_judged} comp${j.comps_judged !== 1 ? 's' : ''} judged</div>` : '';
       const dirInitials = j.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
       const avatarHtml = j.avatar
-        ? `<div style="width:48px;height:48px;border-radius:50%;background:center/cover url('${escapeAttr(j.avatar)}') rgba(200,16,46,.15);flex-shrink:0;"></div>`
-        : `<div style="width:48px;height:48px;border-radius:50%;background:rgba(200,16,46,.15);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:var(--clr-primary);flex-shrink:0;">${escapeHtml(dirInitials)}</div>`;
+        ? `<img src="${escapeAttr(j.avatar)}" alt="${escapeAttr(j.name)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(200,16,46,.3);">`
+        : `<div style="width:72px;height:72px;border-radius:50%;background:rgba(200,16,46,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;color:var(--clr-primary);border:2px solid rgba(200,16,46,.2);">${escapeHtml(dirInitials)}</div>`;
       html += `
-        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:1rem 1.1rem;cursor:pointer;transition:border-color .2s;" onclick="openJudgeProfile(${j.id || 0})" onmouseenter="this.style.borderColor='rgba(200,16,46,.4)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.09)'"
-          <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;">
-            ${avatarHtml}
-            <div>
-              <div style="font-weight:700;font-size:1rem;margin-bottom:.15rem;">${escapeHtml(j.name)}</div>
-              ${position}
-            </div>
-          </div>
-          <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem;">${levels}</div>
-          <div style="display:flex;flex-direction:column;gap:.3rem;">${comps}${ig}</div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:1.25rem 1rem;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .15s;text-align:center;" onclick="openJudgeProfile(${j.id || 0})" onmouseenter="this.style.borderColor='rgba(200,16,46,.5)';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(200,16,46,.12)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.09)';this.style.transform='';this.style.boxShadow=''">
+          <div style="display:flex;justify-content:center;margin-bottom:.75rem;">${avatarHtml}</div>
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;">${escapeHtml(j.name)}</div>
+          ${j.position ? `<div style="font-size:.78rem;color:var(--clr-muted);margin-bottom:.5rem;">${escapeHtml(j.position)}</div>` : '<div style="margin-bottom:.5rem;"></div>'}
+          <div style="margin-bottom:.5rem;">${levelBadge}</div>
+          ${comps}${ig}
         </div>`;
     }
     html += `</div></div>`;
