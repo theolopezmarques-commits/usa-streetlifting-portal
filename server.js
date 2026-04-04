@@ -46,6 +46,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https://usastreetlifting.org"],
       connectSrc: ["'self'", "https://usastreetlifting.org", "https://calendar.app.google"],
       frameSrc: ["'self'", "blob:"],
+      mediaSrc: ["'self'", "https://pub-be06f36754244e97924aad36ac6257af.r2.dev"],
     },
   },
 }));
