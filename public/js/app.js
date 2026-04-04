@@ -2288,31 +2288,57 @@ function renderDirectory(judges) {
     if (!byState[state]) byState[state] = [];
     byState[state].push(j);
   }
-  const levelColors = { '0': '#60a5fa', '1': '#4cd964', '2': '#f59e0b', '3': '#c0392b' };
+  const levelColors  = { '0':'#60a5fa', '1':'#4cd964', '2':'#f59e0b', '3':'#e11d48' };
+  const levelLabels2 = { '0':'Entry', '1':'Foundational', '2':'Advanced', '3':'Elite' };
   let html = '';
   for (const [state, list] of Object.entries(byState).sort()) {
-    html += `<div style="margin-bottom:2.5rem;">
-      <h3 style="font-family:var(--font-heading);color:var(--clr-primary);font-size:1rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:.5rem;">${escapeHtml(state)}</h3>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;">`;
+    html += `<div style="margin-bottom:3rem;">
+      <h3 style="font-family:var(--font-heading);color:var(--clr-primary);font-size:.85rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;">
+        <span>${escapeHtml(state)}</span>
+        <span style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,16,46,.3),transparent);"></span>
+        <span style="font-size:.75rem;color:var(--clr-muted);letter-spacing:.05em;">${list.length} judge${list.length !== 1 ? 's' : ''}</span>
+      </h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:1.25rem;">`;
     for (const j of list) {
       const topLevel = (j.levels || '').split(',').map(Number).filter(n => !isNaN(n));
-      const highest = topLevel.length ? Math.max(...topLevel) : null;
-      const levelBadge = highest !== null
-        ? `<span style="background:${levelColors[highest] || 'var(--clr-primary)'}22;color:${levelColors[highest] || 'var(--clr-primary)'};border:1px solid ${levelColors[highest] || 'var(--clr-primary)'}44;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700;letter-spacing:.04em;">Level ${highest}</span>`
-        : '';
-      const ig = j.instagram ? `<div style="font-size:.78rem;color:var(--clr-muted);margin-top:.3rem;">📸 ${escapeHtml(j.instagram)}</div>` : '';
-      const comps = j.comps_judged > 0 ? `<div style="font-size:.78rem;color:var(--clr-muted);">🏆 ${j.comps_judged} comp${j.comps_judged !== 1 ? 's' : ''} judged</div>` : '';
-      const dirInitials = j.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-      const avatarHtml = j.avatar
-        ? `<img src="${escapeAttr(j.avatar)}" alt="${escapeAttr(j.name)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(200,16,46,.3);">`
-        : `<div style="width:72px;height:72px;border-radius:50%;background:rgba(200,16,46,.15);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;color:var(--clr-primary);border:2px solid rgba(200,16,46,.2);">${escapeHtml(dirInitials)}</div>`;
+      const highest  = topLevel.length ? Math.max(...topLevel) : null;
+      const clr      = levelColors[highest] || '#c0392b';
+      const lbl      = highest !== null ? levelLabels2[highest] || `Level ${highest}` : '';
+      const dirInitials = j.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+      const avatarInner = j.avatar
+        ? `<img src="${escapeAttr(j.avatar)}" alt="${escapeAttr(j.name)}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:block;">`
+        : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,${clr}44,${clr}11);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.4rem;color:${clr};">${escapeHtml(dirInitials)}</div>`;
+      const compsHtml = j.comps_judged > 0
+        ? `<div style="text-align:center;"><div style="font-size:1.1rem;font-weight:800;color:#fff;">${j.comps_judged}</div><div style="font-size:.6rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.1rem;">Comps</div></div>` : '';
+      const igHtml = j.instagram
+        ? `<div style="text-align:center;"><div style="font-size:1rem;">📸</div><div style="font-size:.6rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.1rem;">Insta</div></div>` : '';
+      const hasStats = j.comps_judged > 0 || j.instagram;
       html += `
-        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:1.25rem 1rem;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .15s;text-align:center;" onclick="openJudgeProfile(${j.id || 0})" onmouseenter="this.style.borderColor='rgba(200,16,46,.5)';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(200,16,46,.12)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.09)';this.style.transform='';this.style.boxShadow=''">
-          <div style="display:flex;justify-content:center;margin-bottom:.75rem;">${avatarHtml}</div>
-          <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;">${escapeHtml(j.name)}</div>
-          ${j.position ? `<div style="font-size:.78rem;color:var(--clr-muted);margin-bottom:.5rem;">${escapeHtml(j.position)}</div>` : '<div style="margin-bottom:.5rem;"></div>'}
-          <div style="margin-bottom:.5rem;">${levelBadge}</div>
-          ${comps}${ig}
+        <div style="position:relative;background:linear-gradient(160deg,${clr}18 0%,rgba(10,10,14,1) 55%);border:1px solid ${clr}30;border-radius:20px;overflow:hidden;cursor:pointer;transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease;"
+          onclick="openJudgeProfile(${j.id || 0})"
+          onmouseenter="this.style.transform='translateY(-8px) scale(1.03)';this.style.boxShadow='0 24px 48px ${clr}30,0 0 0 1px ${clr}50';this.querySelector('.shine').style.opacity='1'"
+          onmouseleave="this.style.transform='';this.style.boxShadow='';this.querySelector('.shine').style.opacity='0'">
+          <!-- Shine sweep -->
+          <div class="shine" style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 60%);opacity:0;transition:opacity .3s;pointer-events:none;z-index:1;border-radius:20px;"></div>
+          <!-- Top color bar -->
+          <div style="height:3px;background:linear-gradient(90deg,${clr},${clr}44);"></div>
+          <!-- Body -->
+          <div style="padding:1.5rem 1rem 1.25rem;text-align:center;position:relative;z-index:2;">
+            <!-- Avatar with glowing ring -->
+            <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:.9rem;">
+              <div style="position:absolute;inset:-3px;border-radius:50%;background:linear-gradient(135deg,${clr},${clr}33);padding:3px;z-index:0;"></div>
+              <div style="position:relative;z-index:1;border-radius:50%;background:#0a0a0e;padding:3px;">${avatarInner}</div>
+              <div style="position:absolute;inset:-3px;border-radius:50%;box-shadow:0 0 18px ${clr}55;pointer-events:none;"></div>
+            </div>
+            <!-- Name -->
+            <div style="font-weight:800;font-size:.98rem;letter-spacing:.01em;line-height:1.2;margin-bottom:.2rem;">${escapeHtml(j.name)}</div>
+            <!-- Position -->
+            ${j.position ? `<div style="font-size:.72rem;color:var(--clr-muted);margin-bottom:.6rem;letter-spacing:.02em;">${escapeHtml(j.position)}</div>` : `<div style="margin-bottom:.6rem;"></div>`}
+            <!-- Level badge -->
+            ${highest !== null ? `<div style="margin-bottom:${hasStats ? '.85rem' : '0'};"><span style="display:inline-block;background:${clr}22;color:${clr};border:1px solid ${clr}55;border-radius:20px;padding:4px 14px;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Level ${highest} · ${lbl}</span></div>` : ''}
+            <!-- Stats row -->
+            ${hasStats ? `<div style="display:flex;justify-content:center;gap:1.5rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.07);">${compsHtml}${igHtml}</div>` : ''}
+          </div>
         </div>`;
     }
     html += `</div></div>`;
