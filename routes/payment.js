@@ -5,7 +5,7 @@ const { dbRun, dbAll, dbGet } = require('../db');
 const router = express.Router();
 
 const PAYMENT_OPTIONS = [
-  { id: 'cert_level_0', label: 'Level 0 – Entry Judge Certification',        amountCents: 50, description: 'USA Streetlifting Level 0 Judge Certification' },
+  { id: 'cert_level_0', label: 'Level 0 – Entry Judge Certification',        amountCents: 2900, description: 'USA Streetlifting Level 0 Judge Certification' },
   { id: 'cert_level_1', label: 'Level 1 – Foundational Judge Certification', amountCents: 3900, description: 'USA Streetlifting Level 1 Judge Certification' },
 ];
 
