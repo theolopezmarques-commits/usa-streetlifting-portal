@@ -1092,6 +1092,43 @@ const MOVEMENT_RULES = {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 })();
 
+async function lookupUserPayments() {
+  const email = document.getElementById('fix-email-input').value.trim();
+  if (!email) return;
+  const el = document.getElementById('fix-user-result');
+  el.innerHTML = 'Looking up…';
+  try {
+    const data = await apiFetch(`/api/admin/user-payments?email=${encodeURIComponent(email)}`);
+    const { user, payments, access } = data;
+    const accessList = access.length ? access.map(a => `Level ${a.level}`).join(', ') : 'None';
+    const paymentRows = payments.map(p => `
+      <tr>
+        <td style="padding:.3rem .5rem;font-size:.8rem">${p.description}</td>
+        <td style="padding:.3rem .5rem;font-size:.8rem">$${(p.amount_cents/100).toFixed(2)}</td>
+        <td style="padding:.3rem .5rem;font-size:.8rem;color:${p.status==='paid'?'#4ade80':'#f87171'}">${p.status}</td>
+        <td style="padding:.3rem .5rem">
+          ${p.status !== 'paid' ? `<button class="btn btn-outline" style="font-size:.75rem;padding:.2rem .5rem" onclick="forceGrant(${user.id},${p.description.includes('Level 1')?1:0},${p.id})">Mark paid + grant access</button>` : `<button class="btn btn-outline" style="font-size:.75rem;padding:.2rem .5rem" onclick="forceGrant(${user.id},${p.description.includes('Level 1')?1:0},null)">Grant access only</button>`}
+        </td>
+      </tr>`).join('');
+    el.innerHTML = `
+      <div style="font-size:.85rem;margin-bottom:.5rem"><strong>${user.name}</strong> (${user.email}) — Course access: <strong>${accessList}</strong></div>
+      ${payments.length ? `<table style="width:100%;border-collapse:collapse">${paymentRows}</table>` : '<p style="font-size:.85rem;color:var(--clr-muted)">No payments found for this user.</p>'}`;
+  } catch (err) {
+    el.innerHTML = `<span style="color:#f87171">${err.message}</span>`;
+  }
+}
+
+async function forceGrant(userId, level, paymentId) {
+  try {
+    const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId, level, paymentId }) });
+    showToast(res.message, 'success');
+    lookupUserPayments();
+    loadAdmin();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 async function syncPayments() {
   const btn = document.getElementById('sync-payments-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
