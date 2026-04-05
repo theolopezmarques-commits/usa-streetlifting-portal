@@ -23,7 +23,13 @@ router.get('/users', requireAdmin, (req, res) => {
      LEFT JOIN (
        SELECT user_id, description, status, amount_cents, created_at
        FROM payments
-       WHERE id IN (SELECT MAX(id) FROM payments GROUP BY user_id)
+       WHERE id IN (
+         SELECT COALESCE(
+           (SELECT id FROM payments p2 WHERE p2.user_id = p1.user_id AND p2.status = 'paid' ORDER BY p2.id DESC LIMIT 1),
+           (SELECT id FROM payments p2 WHERE p2.user_id = p1.user_id ORDER BY p2.id DESC LIMIT 1)
+         )
+         FROM (SELECT DISTINCT user_id FROM payments) p1
+       )
      ) p ON p.user_id = u.id
      WHERE u.is_admin = 0
      ORDER BY u.created_at DESC`,
@@ -405,7 +411,7 @@ router.post('/sync-payments', requireAdmin, async (req, res) => {
   const levelMap = { cert_level_0: 0, cert_level_1: 1 };
 
   const pending = dbAll(
-    `SELECT id, user_id, venmo_note, description FROM payments WHERE status = 'pending' AND venmo_note LIKE 'cs_live_%'`,
+    `SELECT id, user_id, venmo_note, description FROM payments WHERE status = 'pending' AND venmo_note LIKE 'cs_%'`,
     []
   );
 
