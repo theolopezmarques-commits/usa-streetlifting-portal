@@ -503,4 +503,18 @@ router.post('/force-grant', requireAdmin, (req, res) => {
   res.json({ ok: true, message: `Granted Level ${level} access to ${user?.name}` });
 });
 
+// POST /api/admin/waive-payment
+router.post('/waive-payment', requireAdmin, (req, res) => {
+  const { userId, level, paymentId } = req.body;
+  if (paymentId) {
+    dbRun(`UPDATE payments SET status = 'waived' WHERE id = ? AND status = 'pending'`, [paymentId]);
+  }
+  dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, ?)`, [userId, level, req.user.id]);
+  if (level === 1) {
+    dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, ?)`, [userId, req.user.id]);
+  }
+  const user = dbGet('SELECT name FROM users WHERE id = ?', [userId]);
+  res.json({ ok: true, message: `Payment waived for ${user?.name}` });
+});
+
 module.exports = router;

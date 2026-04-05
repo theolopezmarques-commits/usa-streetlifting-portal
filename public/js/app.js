@@ -997,6 +997,21 @@ function escapeAttr(str) {
       } catch (err) { showToast(err.message || 'Error', 'error'); markBtn.disabled = false; markBtn.textContent = 'Mark Paid + Grant Access'; }
       return;
     }
+    const waiveBtn = e.target.closest('[data-waive-payment]');
+    if (waiveBtn && !waiveBtn.disabled) {
+      const uid2 = parseInt(waiveBtn.dataset.waivePayment);
+      const pid  = parseInt(waiveBtn.dataset.pid);
+      const lvl2 = parseInt(waiveBtn.dataset.level);
+      waiveBtn.disabled = true;
+      waiveBtn.textContent = 'Saving…';
+      try {
+        const res = await apiFetch('/api/admin/waive-payment', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
+        showToast(res.message || 'Payment waived!', 'success');
+        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+        openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+      } catch (err) { showToast(err.message || 'Error', 'error'); waiveBtn.disabled = false; waiveBtn.textContent = 'Waive'; }
+      return;
+    }
     const addBtn = e.target.closest('[data-add-payment]');
     if (addBtn && !addBtn.disabled) {
       const uid2  = parseInt(addBtn.dataset.addPayment);
@@ -1675,8 +1690,9 @@ function renderPaymentSection(user) {
   }
   const rows = payments.map(p => {
     const lvl = p.description && p.description.includes('Level 1') ? 1 : 0;
-    const markBtn = p.status !== 'paid'
-      ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" data-mark-paid="${uid}" data-pid="${p.id}" data-level="${lvl}">Mark Paid + Grant Access</button>`
+    const actionBtns = p.status === 'pending'
+      ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" data-mark-paid="${uid}" data-pid="${p.id}" data-level="${lvl}">Mark Paid</button>
+         <button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;background:#1e3a5f;" data-waive-payment="${uid}" data-pid="${p.id}" data-level="${lvl}">Waive</button>`
       : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
       <div>
@@ -1685,7 +1701,7 @@ function renderPaymentSection(user) {
       </div>
       <div style="display:flex;align-items:center;gap:.5rem;">
         <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':p.status==='waived'?'#60a5fa':'#f5a623'};font-weight:700;">${(p.status||'').toUpperCase()}</span>
-        ${markBtn}
+        ${actionBtns}
       </div>
     </div>`;
   }).join('');
