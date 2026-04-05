@@ -464,11 +464,16 @@ router.post('/sync-payments', requireAdmin, async (req, res) => {
   res.json({ fixed, total: pending.length, results });
 });
 
-// GET /api/admin/user-payments?email=xxx
+// GET /api/admin/user-payments?q=xxx
 router.get('/user-payments', requireAdmin, (req, res) => {
-  const { email } = req.query;
-  const user = dbGet('SELECT id, name, email FROM users WHERE email = ? OR name LIKE ?', [email, `%${email}%`]);
-  if (!user) return res.status(404).json({ error: 'User not found.' });
+  const q = (req.query.q || req.query.email || '').trim().toLowerCase();
+  if (!q) return res.status(400).json({ error: 'Search term required.' });
+  const users = dbAll(
+    `SELECT id, name, email FROM users WHERE LOWER(email) LIKE ? OR LOWER(name) LIKE ?`,
+    [`%${q}%`, `%${q}%`]
+  );
+  if (users.length === 0) return res.status(404).json({ error: `No user found matching "${q}".` });
+  const user = users[0];
   const payments = dbAll('SELECT * FROM payments WHERE user_id = ? ORDER BY id DESC', [user.id]);
   const access = dbAll('SELECT * FROM course_access WHERE user_id = ?', [user.id]);
   res.json({ user, payments, access });

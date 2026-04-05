@@ -1107,7 +1107,7 @@ async function lookupUserPayments() {
   const el = document.getElementById('fix-user-result');
   el.innerHTML = 'Looking up…';
   try {
-    const data = await apiFetch(`/api/admin/user-payments?email=${encodeURIComponent(email)}`);
+    const data = await apiFetch(`/api/admin/user-payments?q=${encodeURIComponent(email)}`);
     const { user, payments, access } = data;
     const accessList = access.length ? access.map(a => `Level ${a.level}`).join(', ') : 'None';
     const paymentRows = payments.map(p => `
