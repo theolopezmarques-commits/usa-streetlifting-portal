@@ -1156,8 +1156,9 @@ async function loadAdmin() {
 
     const total   = users.length;
     const paid    = users.filter(u => u.payment_status === 'paid').length;
+    const waived  = users.filter(u => u.payment_status === 'waived').length;
     const pending = users.filter(u => u.payment_status === 'pending').length;
-    const noPay   = total - paid - pending;
+    const noPay   = total - paid - waived - pending;
 
     function fmtDate(d) {
       if (!d) return '—';
@@ -1166,6 +1167,7 @@ async function loadAdmin() {
     function payPill(u) {
       if (!u.payment_status) return '<span class="cert-pill cert-pill--none">—</span>';
       if (u.payment_status === 'paid') return '<span class="cert-pill cert-pill--paid">Paid</span>';
+      if (u.payment_status === 'waived') return '<span class="cert-pill cert-pill--waived">Waived</span>';
       return '<span class="cert-pill cert-pill--pending">Pending</span>';
     }
     function certPill(u) {
@@ -1646,7 +1648,7 @@ function renderPaymentSection(user) {
         <span style="font-size:.78rem;color:var(--clr-muted);margin-left:.5rem;">$${((p.amount_cents||0)/100).toFixed(2)}</span>
       </div>
       <div style="display:flex;align-items:center;gap:.5rem;">
-        <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':'#f5a623'};font-weight:700;">${(p.status||'').toUpperCase()}</span>
+        <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':p.status==='waived'?'#60a5fa':'#f5a623'};font-weight:700;">${(p.status||'').toUpperCase()}</span>
         ${markBtn}
       </div>
     </div>`;

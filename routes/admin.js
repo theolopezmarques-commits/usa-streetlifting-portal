@@ -154,6 +154,12 @@ router.post('/grant-course-access', requireAdmin, (req, res) => {
   const { userId, level } = req.body;
   if (!userId || ![0, 1, 2].includes(level)) return res.status(400).json({ error: 'userId and level (0, 1, or 2) required.' });
   dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, ?)`, [userId, level, req.user.id]);
+  // Record a waived payment if no paid/waived record exists for this level
+  const levelDescMap = { 0: 'USA Streetlifting Level 0 Judge Certification', 1: 'USA Streetlifting Level 1 Judge Certification', 2: 'USA Streetlifting Level 2 Judge Certification' };
+  const existing = dbGet(`SELECT id FROM payments WHERE user_id = ? AND description = ? AND status IN ('paid','waived')`, [userId, levelDescMap[level]]);
+  if (!existing) {
+    dbRun(`INSERT INTO payments (user_id, amount_cents, description, status) VALUES (?, 0, ?, 'waived')`, [userId, levelDescMap[level]]);
+  }
   res.json({ success: true });
 });
 
