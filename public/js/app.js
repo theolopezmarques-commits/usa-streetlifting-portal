@@ -1101,41 +1101,27 @@ const MOVEMENT_RULES = {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 })();
 
-async function lookupUserPayments() {
-  const email = document.getElementById('fix-email-input').value.trim();
-  if (!email) return;
-  const el = document.getElementById('fix-user-result');
-  el.innerHTML = 'Looking up…';
-  try {
-    const data = await apiFetch(`/api/admin/user-payments?q=${encodeURIComponent(email)}`);
-    const { user, payments, access } = data;
-    const accessList = access.length ? access.map(a => `Level ${a.level}`).join(', ') : 'None';
-    const paymentRows = payments.map(p => `
-      <tr>
-        <td style="padding:.3rem .5rem;font-size:.8rem">${p.description}</td>
-        <td style="padding:.3rem .5rem;font-size:.8rem">$${(p.amount_cents/100).toFixed(2)}</td>
-        <td style="padding:.3rem .5rem;font-size:.8rem;color:${p.status==='paid'?'#4ade80':'#f87171'}">${p.status}</td>
-        <td style="padding:.3rem .5rem">
-          ${p.status !== 'paid' ? `<button class="btn btn-outline" style="font-size:.75rem;padding:.2rem .5rem" onclick="forceGrant(${user.id},${p.description.includes('Level 1')?1:0},${p.id})">Mark paid + grant access</button>` : `<button class="btn btn-outline" style="font-size:.75rem;padding:.2rem .5rem" onclick="forceGrant(${user.id},${p.description.includes('Level 1')?1:0},null)">Grant access only</button>`}
-        </td>
-      </tr>`).join('');
-    el.innerHTML = `
-      <div style="font-size:.85rem;margin-bottom:.5rem"><strong>${user.name}</strong> (${user.email}) — Course access: <strong>${accessList}</strong></div>
-      ${payments.length ? `<table style="width:100%;border-collapse:collapse">${paymentRows}</table>` : '<p style="font-size:.85rem;color:var(--clr-muted)">No payments found for this user.</p>'}`;
-  } catch (err) {
-    el.innerHTML = `<span style="color:#f87171">${err.message}</span>`;
-  }
-}
-
-async function forceGrant(userId, level, paymentId) {
+async function adminMarkPaid(userId, paymentId, level) {
   try {
     const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId, level, paymentId }) });
     showToast(res.message, 'success');
-    lookupUserPayments();
+    // Re-open the user detail panel to reflect changes
+    const row = document.querySelector(`.admin-user-row[data-uid="${userId}"]`);
+    if (row) row.click();
     loadAdmin();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function adminAddPayment(userId, optionId) {
+  const PAYMENT_OPTIONS = { cert_level_0: { desc: 'USA Streetlifting Level 0 Judge Certification', cents: 2900, level: 0 }, cert_level_1: { desc: 'USA Streetlifting Level 1 Judge Certification', cents: 3900, level: 1 } };
+  const opt = PAYMENT_OPTIONS[optionId];
+  try {
+    await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId, level: opt.level, paymentId: null, addPayment: { description: opt.desc, amount_cents: opt.cents } }) });
+    showToast(`Level ${opt.level} payment added and access granted.`, 'success');
+    const row = document.querySelector(`.admin-user-row[data-uid="${userId}"]`);
+    if (row) row.click();
+    loadAdmin();
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function syncPayments() {
@@ -1644,13 +1630,11 @@ async function openUserDetail(user) {
   const overlay = document.getElementById('user-detail-overlay');
   if (!panel || !overlay) return;
 
-  // Always fetch fresh course access unless already loaded
-  if (!user.courseAccess) {
-    try {
-      const detail = await apiFetch(`/api/admin/user-detail/${user.id}`);
-      user = { ...user, courseAccess: detail.courseAccess };
-    } catch { user = { ...user, courseAccess: [] }; }
-  }
+  // Always fetch fresh course access + payments
+  try {
+    const detail = await apiFetch(`/api/admin/user-detail/${user.id}`);
+    user = { ...user, courseAccess: detail.courseAccess, payments: detail.payments || [] };
+  } catch { user = { ...user, courseAccess: [], payments: [] }; }
 
   const now = new Date();
 
@@ -1723,6 +1707,34 @@ async function openUserDetail(user) {
           }
         </div>`;
       }).join('')}
+    </div>
+
+    <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Payment</h4>
+    <div id="ud-payments-section">
+      ${(() => {
+        const payments = user.payments || [];
+        if (payments.length === 0) return `
+          <p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:.75rem;">No payments on record.</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_0')">Mark Level 0 paid ($29)</button>
+            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_1')">Mark Level 1 paid ($39)</button>
+          </div>`;
+        return payments.map(p => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
+            <div>
+              <span style="font-size:.88rem;font-weight:600;">${p.description}</span>
+              <span style="font-size:.78rem;color:var(--clr-muted);margin-left:.5rem;">$${(p.amount_cents/100).toFixed(2)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':'#f5a623'};font-weight:700;">${p.status.toUpperCase()}</span>
+              ${p.status !== 'paid' ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" onclick="adminMarkPaid(${user.id},${p.id},${p.description.includes('Level 1')?1:0})">Mark Paid + Grant Access</button>` : ''}
+            </div>
+          </div>`).join('') + `
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_0')">+ Add Level 0 payment</button>
+            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_1')">+ Add Level 1 payment</button>
+          </div>`;
+      })()}
     </div>
 
     <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Directory Profile</h4>

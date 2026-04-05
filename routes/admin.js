@@ -128,7 +128,7 @@ router.get('/user-detail/:id', requireAdmin, (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found.' });
 
   const payments = dbAll(
-    `SELECT description, status, amount_cents, created_at FROM payments WHERE user_id = ? ORDER BY created_at DESC`,
+    `SELECT id, description, status, amount_cents, created_at FROM payments WHERE user_id = ? ORDER BY created_at DESC`,
     [userId]
   );
   const certifications = dbAll(
@@ -481,9 +481,13 @@ router.get('/user-payments', requireAdmin, (req, res) => {
 
 // POST /api/admin/force-grant
 router.post('/force-grant', requireAdmin, (req, res) => {
-  const { userId, level, paymentId } = req.body;
+  const { userId, level, paymentId, addPayment } = req.body;
   if (paymentId) {
     dbRun(`UPDATE payments SET status = 'paid' WHERE id = ?`, [paymentId]);
+  }
+  if (addPayment) {
+    dbRun(`INSERT INTO payments (user_id, amount_cents, description, status) VALUES (?, ?, ?, 'paid')`,
+      [userId, addPayment.amount_cents, addPayment.description]);
   }
   dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, ?)`, [userId, level, req.user.id]);
   if (level === 1) {
