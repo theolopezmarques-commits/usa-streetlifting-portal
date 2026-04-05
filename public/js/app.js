@@ -624,7 +624,16 @@ async function handleStripeReturn() {
   }
 
   if (status === 'success') {
-    showToast('Payment received! Your certification will be activated shortly.', 'success');
+    if (sessionId) {
+      try {
+        await apiFetch(`/api/payment/verify-session?session_id=${encodeURIComponent(sessionId)}`);
+        showToast('Payment confirmed! Course access granted. 🎉', 'success');
+      } catch (err) {
+        showToast('Payment received! If your course is not available yet, please refresh.', 'success');
+      }
+    } else {
+      showToast('Payment received! Course access granted. 🎉', 'success');
+    }
     navigate('dashboard');
   }
 }
