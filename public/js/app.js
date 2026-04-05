@@ -980,8 +980,8 @@ function escapeAttr(str) {
     }
   });
 
-  // Permanent payment button delegation (survives panel re-renders)
-  document.getElementById('user-detail-panel')?.addEventListener('click', async (e) => {
+  // Permanent payment button delegation on document (catches all clicks regardless of panel state)
+  document.addEventListener('click', async (e) => {
     const markBtn = e.target.closest('[data-mark-paid]');
     if (markBtn && !markBtn.disabled) {
       const uid2 = parseInt(markBtn.dataset.markPaid);
