@@ -1625,6 +1625,38 @@ async function loadAdmin() {
   }
 }
 
+function renderPaymentSection(user) {
+  const payments = user.payments || [];
+  const uid = user.id;
+  if (payments.length === 0) {
+    return `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:.75rem;">No payments on record.</p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_0')">Mark Level 0 paid ($29)</button>
+        <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_1')">Mark Level 1 paid ($39)</button>
+      </div>`;
+  }
+  const rows = payments.map(p => {
+    const lvl = p.description && p.description.includes('Level 1') ? 1 : 0;
+    const markBtn = p.status !== 'paid'
+      ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" onclick="adminMarkPaid(${uid},${p.id},${lvl})">Mark Paid + Grant Access</button>`
+      : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
+      <div>
+        <span style="font-size:.88rem;font-weight:600;">${p.description || '—'}</span>
+        <span style="font-size:.78rem;color:var(--clr-muted);margin-left:.5rem;">$${((p.amount_cents||0)/100).toFixed(2)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':'#f5a623'};font-weight:700;">${(p.status||'').toUpperCase()}</span>
+        ${markBtn}
+      </div>
+    </div>`;
+  }).join('');
+  return rows + `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+    <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_0')">+ Add Level 0 payment</button>
+    <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_1')">+ Add Level 1 payment</button>
+  </div>`;
+}
+
 async function openUserDetail(user) {
   const panel = document.getElementById('user-detail-panel');
   const overlay = document.getElementById('user-detail-overlay');
@@ -1711,30 +1743,7 @@ async function openUserDetail(user) {
 
     <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Payment</h4>
     <div id="ud-payments-section">
-      ${(() => {
-        const payments = user.payments || [];
-        if (payments.length === 0) return `
-          <p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:.75rem;">No payments on record.</p>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_0')">Mark Level 0 paid ($29)</button>
-            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_1')">Mark Level 1 paid ($39)</button>
-          </div>`;
-        return payments.map(p => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
-            <div>
-              <span style="font-size:.88rem;font-weight:600;">${p.description}</span>
-              <span style="font-size:.78rem;color:var(--clr-muted);margin-left:.5rem;">$${(p.amount_cents/100).toFixed(2)}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:.5rem;">
-              <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':'#f5a623'};font-weight:700;">${p.status.toUpperCase()}</span>
-              ${p.status !== 'paid' ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" onclick="adminMarkPaid(${user.id},${p.id},${p.description.includes('Level 1')?1:0})">Mark Paid + Grant Access</button>` : ''}
-            </div>
-          </div>`).join('') + `
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
-            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_0')">+ Add Level 0 payment</button>
-            <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${user.id},'cert_level_1')">+ Add Level 1 payment</button>
-          </div>`;
-      })()}
+      ${renderPaymentSection(user)}
     </div>
 
     <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Directory Profile</h4>
