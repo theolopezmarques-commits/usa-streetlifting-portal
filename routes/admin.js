@@ -405,54 +405,62 @@ router.get('/expiring-certs', requireAdmin, (req, res) => {
   res.json({ certs: rows });
 });
 
-// POST /api/admin/sync-payments — check all pending payments against Stripe, fix any that are actually paid
+// POST /api/admin/sync-payments
 router.post('/sync-payments', requireAdmin, async (req, res) => {
   const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   const levelMap = { cert_level_0: 0, cert_level_1: 1 };
-
-  const pending = dbAll(
-    `SELECT id, user_id, venmo_note, description FROM payments WHERE status = 'pending' AND venmo_note LIKE 'cs_%'`,
-    []
-  );
-
-  let fixed = 0;
   const results = [];
+  let fixed = 0;
+
+  // Step 1: fix pending payments that Stripe shows as paid
+  const pending = dbAll(
+    `SELECT p.id, p.user_id, p.venmo_note, p.description, u.name, u.email
+     FROM payments p JOIN users u ON u.id = p.user_id
+     WHERE p.status = 'pending' AND p.venmo_note LIKE 'cs_%'`, []
+  );
 
   for (const p of pending) {
     try {
       const session = await stripe.checkout.sessions.retrieve(p.venmo_note);
       if (session.payment_status === 'paid') {
-        // Mark payment as paid
-        dbRun(
-          `UPDATE payments SET status = 'paid' WHERE id = ?`,
-          [p.id]
-        );
-
-        // Grant course access
+        dbRun(`UPDATE payments SET status = 'paid' WHERE id = ?`, [p.id]);
         const optionId = session.metadata?.option_id;
         const level = levelMap[optionId];
         if (level !== undefined) {
-          dbRun(
-            `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`,
-            [p.user_id, level]
-          );
-          if (level === 1) {
-            dbRun(
-              `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`,
-              [p.user_id]
-            );
-          }
+          dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`, [p.user_id, level]);
+          if (level === 1) dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`, [p.user_id]);
         }
-
-        const user = dbGet('SELECT name, email FROM users WHERE id = ?', [p.user_id]);
-        results.push(`✓ ${user?.name || p.user_id} — ${p.description}`);
+        results.push(`FIXED: ${p.name} (${p.email}) — ${p.description} — level granted: ${level ?? 'unknown option '+optionId}`);
         fixed++;
+      } else {
+        results.push(`STILL PENDING: ${p.name} — ${p.description} — stripe status: ${session.payment_status}`);
       }
     } catch (err) {
-      results.push(`✗ payment #${p.id}: ${err.message}`);
+      results.push(`ERROR checking payment #${p.id} for ${p.name}: ${err.message}`);
     }
   }
 
+  // Step 2: fix paid payments that never got course_access
+  const paidNoAccess = dbAll(
+    `SELECT p.user_id, p.description, u.name, u.email
+     FROM payments p JOIN users u ON u.id = p.user_id
+     WHERE p.status = 'paid'
+       AND p.venmo_note LIKE 'cs_%'
+       AND NOT EXISTS (SELECT 1 FROM course_access ca WHERE ca.user_id = p.user_id)`, []
+  );
+
+  for (const p of paidNoAccess) {
+    const levelMatch = p.description.match(/Level (\d)/i);
+    const level = levelMatch ? parseInt(levelMatch[1]) : null;
+    if (level !== null && level <= 1) {
+      dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`, [p.user_id, level]);
+      if (level === 1) dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`, [p.user_id]);
+      results.push(`ACCESS FIXED: ${p.name} (${p.email}) already paid — granted Level ${level}`);
+      fixed++;
+    }
+  }
+
+  if (results.length === 0) results.push('No pending payments found in DB.');
   res.json({ fixed, total: pending.length, results });
 });
 

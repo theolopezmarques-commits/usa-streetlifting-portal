@@ -1097,17 +1097,11 @@ async function syncPayments() {
   if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
   try {
     const res = await apiFetch('/api/admin/sync-payments', { method: 'POST' });
-    if (res.fixed > 0) {
-      showToast(`Fixed ${res.fixed} payment(s): ${res.results.filter(r=>r.startsWith('✓')).join(', ')}`, 'success');
-      loadAdmin(); // refresh the list
-    } else {
-      showToast('All payments are already up to date.', 'info');
-    }
-    if (res.results.some(r => r.startsWith('✗'))) {
-      console.warn('Sync errors:', res.results.filter(r => r.startsWith('✗')));
-    }
+    if (res.fixed > 0) loadAdmin();
+    // Show full results in an alert so you can see exactly what happened
+    alert(`Sync complete — fixed ${res.fixed} issue(s)\n\n${res.results.join('\n')}`);
   } catch (err) {
-    showToast('Sync failed: ' + err.message, 'error');
+    alert('Sync failed: ' + err.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync Payments'; }
   }
