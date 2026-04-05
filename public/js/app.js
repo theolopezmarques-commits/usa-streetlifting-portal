@@ -1092,6 +1092,27 @@ const MOVEMENT_RULES = {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 })();
 
+async function syncPayments() {
+  const btn = document.getElementById('sync-payments-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
+  try {
+    const res = await apiFetch('/api/admin/sync-payments', { method: 'POST' });
+    if (res.fixed > 0) {
+      showToast(`Fixed ${res.fixed} payment(s): ${res.results.filter(r=>r.startsWith('✓')).join(', ')}`, 'success');
+      loadAdmin(); // refresh the list
+    } else {
+      showToast('All payments are already up to date.', 'info');
+    }
+    if (res.results.some(r => r.startsWith('✗'))) {
+      console.warn('Sync errors:', res.results.filter(r => r.startsWith('✗')));
+    }
+  } catch (err) {
+    showToast('Sync failed: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync Payments'; }
+  }
+}
+
 // ===================== ADMIN PANEL =====================
 async function loadAdmin() {
   const section = document.getElementById('admin-content');

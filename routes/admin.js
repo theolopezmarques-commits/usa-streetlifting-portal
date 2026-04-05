@@ -399,4 +399,55 @@ router.get('/expiring-certs', requireAdmin, (req, res) => {
   res.json({ certs: rows });
 });
 
+// POST /api/admin/sync-payments — check all pending payments against Stripe, fix any that are actually paid
+router.post('/sync-payments', requireAdmin, async (req, res) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+  const levelMap = { cert_level_0: 0, cert_level_1: 1 };
+
+  const pending = dbAll(
+    `SELECT id, user_id, venmo_note, description FROM payments WHERE status = 'pending' AND venmo_note LIKE 'cs_live_%'`,
+    []
+  );
+
+  let fixed = 0;
+  const results = [];
+
+  for (const p of pending) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(p.venmo_note);
+      if (session.payment_status === 'paid') {
+        // Mark payment as paid
+        dbRun(
+          `UPDATE payments SET status = 'paid' WHERE id = ?`,
+          [p.id]
+        );
+
+        // Grant course access
+        const optionId = session.metadata?.option_id;
+        const level = levelMap[optionId];
+        if (level !== undefined) {
+          dbRun(
+            `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`,
+            [p.user_id, level]
+          );
+          if (level === 1) {
+            dbRun(
+              `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`,
+              [p.user_id]
+            );
+          }
+        }
+
+        const user = dbGet('SELECT name, email FROM users WHERE id = ?', [p.user_id]);
+        results.push(`✓ ${user?.name || p.user_id} — ${p.description}`);
+        fixed++;
+      }
+    } catch (err) {
+      results.push(`✗ payment #${p.id}: ${err.message}`);
+    }
+  }
+
+  res.json({ fixed, total: pending.length, results });
+});
+
 module.exports = router;
