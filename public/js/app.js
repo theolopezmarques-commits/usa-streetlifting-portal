@@ -1631,14 +1631,14 @@ function renderPaymentSection(user) {
   if (payments.length === 0) {
     return `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:.75rem;">No payments on record.</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_0')">Mark Level 0 paid ($29)</button>
-        <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_1')">Mark Level 1 paid ($39)</button>
+        <button class="btn-grant" style="font-size:.8rem;" data-add-payment="${uid}" data-option="cert_level_0">Mark Level 0 paid ($29)</button>
+        <button class="btn-grant" style="font-size:.8rem;" data-add-payment="${uid}" data-option="cert_level_1">Mark Level 1 paid ($39)</button>
       </div>`;
   }
   const rows = payments.map(p => {
     const lvl = p.description && p.description.includes('Level 1') ? 1 : 0;
     const markBtn = p.status !== 'paid'
-      ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" onclick="adminMarkPaid(${uid},${p.id},${lvl})">Mark Paid + Grant Access</button>`
+      ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" data-mark-paid="${uid}" data-pid="${p.id}" data-level="${lvl}">Mark Paid + Grant Access</button>`
       : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
       <div>
@@ -1652,8 +1652,8 @@ function renderPaymentSection(user) {
     </div>`;
   }).join('');
   return rows + `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
-    <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_0')">+ Add Level 0 payment</button>
-    <button class="btn-grant" style="font-size:.8rem;" onclick="adminAddPayment(${uid},'cert_level_1')">+ Add Level 1 payment</button>
+    <button class="btn-grant" style="font-size:.8rem;" data-add-payment="${uid}" data-option="cert_level_0">+ Add Level 0 payment</button>
+    <button class="btn-grant" style="font-size:.8rem;" data-add-payment="${uid}" data-option="cert_level_1">+ Add Level 1 payment</button>
   </div>`;
 }
 
@@ -1839,6 +1839,41 @@ async function openUserDetail(user) {
       });
       showToast('Profile saved.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
+  });
+
+  // Payment section — Mark Paid + Grant Access
+  panel.querySelectorAll('[data-mark-paid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid2 = parseInt(btn.dataset.markPaid);
+      const pid  = parseInt(btn.dataset.pid);
+      const lvl2 = parseInt(btn.dataset.level);
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
+        showToast(res.message || 'Access granted!', 'success');
+        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+        openUserDetail({ ...user, id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+      } catch (err) { showToast(err.message || 'Error', 'error'); btn.disabled = false; btn.textContent = 'Mark Paid + Grant Access'; }
+    });
+  });
+
+  // Payment section — Add payment record
+  panel.querySelectorAll('[data-add-payment]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid2   = parseInt(btn.dataset.addPayment);
+      const optId  = btn.dataset.option;
+      const OPTS   = { cert_level_0: { desc: 'USA Streetlifting Level 0 Judge Certification', cents: 2900, level: 0 }, cert_level_1: { desc: 'USA Streetlifting Level 1 Judge Certification', cents: 3900, level: 1 } };
+      const opt    = OPTS[optId];
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: opt.level, paymentId: null, addPayment: { description: opt.desc, amount_cents: opt.cents } }) });
+        showToast(`Level ${opt.level} payment added and access granted.`, 'success');
+        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+        openUserDetail({ ...user, id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+      } catch (err) { showToast(err.message || 'Error', 'error'); btn.disabled = false; btn.textContent = btn.textContent.replace('Saving…', btn.dataset.option.includes('0') ? 'Mark Level 0 paid ($29)' : 'Mark Level 1 paid ($39)'); }
+    });
   });
 
   overlay.classList.add('open');
