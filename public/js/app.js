@@ -30,6 +30,7 @@ const _API = (typeof API_BASE !== 'undefined') ? API_BASE : '';
 })();
 
 let currentUser = null;
+let currentDetailUser = null;
 
 // ===================== NAVIGATION =====================
 function navigate(page) {
@@ -978,6 +979,41 @@ function escapeAttr(str) {
       document.body.style.overflow = '';
     }
   });
+
+  // Permanent payment button delegation (survives panel re-renders)
+  document.getElementById('user-detail-panel')?.addEventListener('click', async (e) => {
+    const markBtn = e.target.closest('[data-mark-paid]');
+    if (markBtn && !markBtn.disabled) {
+      const uid2 = parseInt(markBtn.dataset.markPaid);
+      const pid  = parseInt(markBtn.dataset.pid);
+      const lvl2 = parseInt(markBtn.dataset.level);
+      markBtn.disabled = true;
+      markBtn.textContent = 'Saving…';
+      try {
+        const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
+        showToast(res.message || 'Access granted!', 'success');
+        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+        openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+      } catch (err) { showToast(err.message || 'Error', 'error'); markBtn.disabled = false; markBtn.textContent = 'Mark Paid + Grant Access'; }
+      return;
+    }
+    const addBtn = e.target.closest('[data-add-payment]');
+    if (addBtn && !addBtn.disabled) {
+      const uid2  = parseInt(addBtn.dataset.addPayment);
+      const optId = addBtn.dataset.option;
+      const OPTS  = { cert_level_0: { desc: 'USA Streetlifting Level 0 Judge Certification', cents: 2900, level: 0 }, cert_level_1: { desc: 'USA Streetlifting Level 1 Judge Certification', cents: 3900, level: 1 } };
+      const opt   = OPTS[optId];
+      addBtn.disabled = true;
+      addBtn.textContent = 'Saving…';
+      try {
+        await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: opt.level, paymentId: null, addPayment: { description: opt.desc, amount_cents: opt.cents } }) });
+        showToast(`Level ${opt.level} payment added and access granted.`, 'success');
+        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+        openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+      } catch (err) { showToast(err.message || 'Error', 'error'); addBtn.disabled = false; addBtn.textContent = addBtn.textContent; }
+      return;
+    }
+  });
 })();
 
 // ===================== MOVEMENT RULES MODAL =====================
@@ -1667,8 +1703,9 @@ async function openUserDetail(user) {
   // Always fetch fresh course access + payments
   try {
     const detail = await apiFetch(`/api/admin/user-detail/${user.id}`);
-    user = { ...user, courseAccess: detail.courseAccess, payments: detail.payments || [] };
-  } catch { user = { ...user, courseAccess: [], payments: [] }; }
+    user = { ...user, courseAccess: detail.courseAccess, payments: detail.payments || [], certifications: detail.certifications || [] };
+  } catch { user = { ...user, courseAccess: [], payments: [], certifications: [] }; }
+  currentDetailUser = user;
 
   const now = new Date();
 
@@ -1841,41 +1878,6 @@ async function openUserDetail(user) {
       });
       showToast('Profile saved.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
-  });
-
-  // Payment section — Mark Paid + Grant Access
-  panel.querySelectorAll('[data-mark-paid]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const uid2 = parseInt(btn.dataset.markPaid);
-      const pid  = parseInt(btn.dataset.pid);
-      const lvl2 = parseInt(btn.dataset.level);
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      try {
-        const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
-        showToast(res.message || 'Access granted!', 'success');
-        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
-        openUserDetail({ ...user, id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
-      } catch (err) { showToast(err.message || 'Error', 'error'); btn.disabled = false; btn.textContent = 'Mark Paid + Grant Access'; }
-    });
-  });
-
-  // Payment section — Add payment record
-  panel.querySelectorAll('[data-add-payment]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const uid2   = parseInt(btn.dataset.addPayment);
-      const optId  = btn.dataset.option;
-      const OPTS   = { cert_level_0: { desc: 'USA Streetlifting Level 0 Judge Certification', cents: 2900, level: 0 }, cert_level_1: { desc: 'USA Streetlifting Level 1 Judge Certification', cents: 3900, level: 1 } };
-      const opt    = OPTS[optId];
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      try {
-        await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: opt.level, paymentId: null, addPayment: { description: opt.desc, amount_cents: opt.cents } }) });
-        showToast(`Level ${opt.level} payment added and access granted.`, 'success');
-        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
-        openUserDetail({ ...user, id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
-      } catch (err) { showToast(err.message || 'Error', 'error'); btn.disabled = false; btn.textContent = btn.textContent.replace('Saving…', btn.dataset.option.includes('0') ? 'Mark Level 0 paid ($29)' : 'Mark Level 1 paid ($39)'); }
-    });
   });
 
   overlay.classList.add('open');
