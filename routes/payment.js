@@ -100,6 +100,23 @@ router.get('/verify-session', async (req, res) => {
       [req.user.id, session_id]
     );
 
+    // Grant course access immediately
+    const levelMap = { cert_level_0: 0, cert_level_1: 1 };
+    const optionId = session.metadata?.option_id;
+    const level = levelMap[optionId];
+    if (level !== undefined) {
+      dbRun(
+        `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`,
+        [req.user.id, level]
+      );
+      if (level === 1) {
+        dbRun(
+          `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`,
+          [req.user.id]
+        );
+      }
+    }
+
     res.json({ success: true, description: session.metadata?.description });
   } catch (err) {
     console.error('Stripe verify error:', err.message);
