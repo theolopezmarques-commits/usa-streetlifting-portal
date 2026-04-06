@@ -980,56 +980,58 @@ function escapeAttr(str) {
     }
   });
 
-  // Permanent payment button delegation on document (catches all clicks regardless of panel state)
-  document.addEventListener('click', async (e) => {
-    const markBtn = e.target.closest('[data-mark-paid]');
-    if (markBtn && !markBtn.disabled) {
-      const uid2 = parseInt(markBtn.dataset.markPaid);
-      const pid  = parseInt(markBtn.dataset.pid);
-      const lvl2 = parseInt(markBtn.dataset.level);
-      markBtn.disabled = true;
-      markBtn.textContent = 'Saving…';
-      try {
-        const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
-        showToast(res.message || 'Access granted!', 'success');
-        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
-        openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
-      } catch (err) { showToast(err.message || 'Error', 'error'); markBtn.disabled = false; markBtn.textContent = 'Mark Paid + Grant Access'; }
-      return;
-    }
-    const waiveBtn = e.target.closest('[data-waive-payment]');
-    if (waiveBtn && !waiveBtn.disabled) {
-      const uid2 = parseInt(waiveBtn.dataset.waivePayment);
-      const pid  = parseInt(waiveBtn.dataset.pid);
-      const lvl2 = parseInt(waiveBtn.dataset.level);
-      waiveBtn.disabled = true;
-      waiveBtn.textContent = 'Saving…';
-      try {
-        const res = await apiFetch('/api/admin/waive-payment', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
-        showToast(res.message || 'Payment waived!', 'success');
-        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
-        openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
-      } catch (err) { showToast(err.message || 'Error', 'error'); waiveBtn.disabled = false; waiveBtn.textContent = 'Waive'; }
-      return;
-    }
-    const addBtn = e.target.closest('[data-add-payment]');
-    if (addBtn && !addBtn.disabled) {
-      const uid2  = parseInt(addBtn.dataset.addPayment);
-      const optId = addBtn.dataset.option;
-      const OPTS  = { cert_level_0: { desc: 'USA Streetlifting Level 0 Judge Certification', cents: 2900, level: 0 }, cert_level_1: { desc: 'USA Streetlifting Level 1 Judge Certification', cents: 3900, level: 1 } };
-      const opt   = OPTS[optId];
-      addBtn.disabled = true;
-      addBtn.textContent = 'Saving…';
-      try {
-        await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: opt.level, paymentId: null, addPayment: { description: opt.desc, amount_cents: opt.cents } }) });
-        showToast(`Level ${opt.level} payment added and access granted.`, 'success');
-        const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
-        openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
-      } catch (err) { showToast(err.message || 'Error', 'error'); addBtn.disabled = false; addBtn.textContent = addBtn.textContent; }
-      return;
-    }
-  });
 })();
+
+// ===================== PAYMENT BUTTON DELEGATION =====================
+// Registered at module level — guaranteed to run regardless of async init state
+document.addEventListener('click', async (e) => {
+  const markBtn = e.target.closest('[data-mark-paid]');
+  if (markBtn && !markBtn.disabled) {
+    const uid2 = parseInt(markBtn.dataset.markPaid);
+    const pid  = parseInt(markBtn.dataset.pid);
+    const lvl2 = parseInt(markBtn.dataset.level);
+    markBtn.disabled = true;
+    markBtn.textContent = 'Saving…';
+    try {
+      const res = await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
+      showToast(res.message || 'Access granted!', 'success');
+      const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+      openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+    } catch (err) { showToast(err.message || 'Error', 'error'); markBtn.disabled = false; markBtn.textContent = 'Mark Paid'; }
+    return;
+  }
+  const waiveBtn = e.target.closest('[data-waive-payment]');
+  if (waiveBtn && !waiveBtn.disabled) {
+    const uid2 = parseInt(waiveBtn.dataset.waivePayment);
+    const pid  = waiveBtn.dataset.pid ? parseInt(waiveBtn.dataset.pid) : null;
+    const lvl2 = parseInt(waiveBtn.dataset.level);
+    waiveBtn.disabled = true;
+    waiveBtn.textContent = 'Saving…';
+    try {
+      const res = await apiFetch('/api/admin/waive-payment', { method: 'POST', body: JSON.stringify({ userId: uid2, level: lvl2, paymentId: pid }) });
+      showToast(res.message || 'Payment waived!', 'success');
+      const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+      openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+    } catch (err) { showToast(err.message || 'Error', 'error'); waiveBtn.disabled = false; waiveBtn.textContent = 'Waive'; }
+    return;
+  }
+  const addBtn = e.target.closest('[data-add-payment]');
+  if (addBtn && !addBtn.disabled) {
+    const uid2  = parseInt(addBtn.dataset.addPayment);
+    const optId = addBtn.dataset.option;
+    const OPTS  = { cert_level_0: { desc: 'USA Streetlifting Level 0 Judge Certification', cents: 2900, level: 0 }, cert_level_1: { desc: 'USA Streetlifting Level 1 Judge Certification', cents: 3900, level: 1 } };
+    const opt   = OPTS[optId];
+    addBtn.disabled = true;
+    addBtn.textContent = 'Saving…';
+    try {
+      await apiFetch('/api/admin/force-grant', { method: 'POST', body: JSON.stringify({ userId: uid2, level: opt.level, paymentId: null, addPayment: { description: opt.desc, amount_cents: opt.cents } }) });
+      showToast(`Level ${opt.level} payment added and access granted.`, 'success');
+      const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+      openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments });
+    } catch (err) { showToast(err.message || 'Error', 'error'); addBtn.disabled = false; }
+    return;
+  }
+});
 
 // ===================== MOVEMENT RULES MODAL =====================
 const MOVEMENT_RULES = {
