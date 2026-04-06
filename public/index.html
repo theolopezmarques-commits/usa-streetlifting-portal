@@ -854,6 +854,14 @@
     </div>
   </div>
 
+  <!-- ============ JUDGE PROFILE MODAL ============ -->
+  <div id="judge-modal-overlay" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);overflow-y:auto;">
+    <div id="judge-modal-panel" style="max-width:680px;margin:3rem auto;background:#111;border-radius:18px;border:1px solid rgba(255,255,255,.1);padding:2rem;position:relative;">
+      <button id="judge-modal-close" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:1.4rem;width:36px;height:36px;border-radius:50%;cursor:pointer;line-height:1;">&times;</button>
+      <div id="judge-modal-content"><p style="color:var(--clr-muted);text-align:center;padding:3rem;">Loading…</p></div>
+    </div>
+  </div>
+
     <!-- JUDGE PROFILE PAGE -->
     <section id="page-judge-profile" class="page">
       <div class="container slide-in" style="max-width:700px;margin:0 auto;padding:6rem 1.5rem 4rem;">
@@ -935,7 +943,7 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=11"></script>
+  <script src="/js/app.js?v=12"></script>
   <!-- Capacitor: only present in native app builds -->
   <script>
     if (window.Capacitor) {

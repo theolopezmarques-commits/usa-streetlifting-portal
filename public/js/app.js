@@ -2688,8 +2688,11 @@ function initCompHistory() {
 
 // ===================== JUDGE PROFILE =====================
 async function openJudgeProfile(judgeId) {
-  navigate('judge-profile');
-  const container = document.getElementById('judge-profile-content');
+  const overlay = document.getElementById('judge-modal-overlay');
+  const container = document.getElementById('judge-modal-content');
+  overlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:3rem;">Loading…</p>';
   container.innerHTML = '<p class="muted" style="text-align:center;padding:3rem;">Loading…</p>';
   try {
     const { user, certs, history } = await fetch(_API + `/api/judge/${judgeId}`).then(r => r.json());
@@ -2722,8 +2725,6 @@ async function openJudgeProfile(judgeId) {
     const highestLevel = activeCerts.length ? Math.max(...activeCerts.map(c => c.level)) : -1;
 
     container.innerHTML = `
-      <button class="btn btn-outline" style="margin-bottom:2rem;font-size:.85rem;" onclick="window.history.back()">← Back to Directory</button>
-
       <!-- Hero banner -->
       <div style="position:relative;border-radius:16px;overflow:hidden;margin-bottom:2rem;background:linear-gradient(135deg,rgba(200,16,46,.18) 0%,rgba(0,0,0,.6) 100%);border:1px solid rgba(200,16,46,.2);">
         <div style="padding:2rem 2rem 1.5rem;display:flex;gap:1.5rem;align-items:flex-end;flex-wrap:wrap;">
@@ -2788,6 +2789,20 @@ async function openJudgeProfile(judgeId) {
     container.innerHTML = '<p style="color:#f87171;text-align:center;">Could not load profile.</p>';
   }
 }
+
+// Judge modal close
+(function initJudgeModal() {
+  document.getElementById('judge-modal-close')?.addEventListener('click', () => {
+    document.getElementById('judge-modal-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  });
+  document.getElementById('judge-modal-overlay')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('judge-modal-overlay')) {
+      document.getElementById('judge-modal-overlay').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  });
+})();
 
 // ===================== CHAT =====================
 let chatPollInterval = null;
