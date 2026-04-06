@@ -506,8 +506,15 @@ router.post('/force-grant', requireAdmin, (req, res) => {
 // POST /api/admin/waive-payment
 router.post('/waive-payment', requireAdmin, (req, res) => {
   const { userId, level, paymentId } = req.body;
+  const levelDescMap = { 0: 'USA Streetlifting Level 0 Judge Certification', 1: 'USA Streetlifting Level 1 Judge Certification', 2: 'USA Streetlifting Level 2 Judge Certification' };
   if (paymentId) {
     dbRun(`UPDATE payments SET status = 'waived' WHERE id = ? AND status = 'pending'`, [paymentId]);
+  } else {
+    // No existing payment — insert a waived record
+    dbRun(`INSERT INTO payments (user_id, amount_cents, description, status) VALUES (?, 0, ?, 'waived')`, [userId, levelDescMap[level] || 'Waived']);
+    if (level === 1) {
+      dbRun(`INSERT INTO payments (user_id, amount_cents, description, status) VALUES (?, 0, ?, 'waived')`, [userId, levelDescMap[0]]);
+    }
   }
   dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, ?)`, [userId, level, req.user.id]);
   if (level === 1) {

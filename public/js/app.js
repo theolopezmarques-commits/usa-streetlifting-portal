@@ -1686,6 +1686,8 @@ function renderPaymentSection(user) {
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
         <button class="btn-grant" style="font-size:.8rem;" data-add-payment="${uid}" data-option="cert_level_0">Mark Level 0 paid ($29)</button>
         <button class="btn-grant" style="font-size:.8rem;" data-add-payment="${uid}" data-option="cert_level_1">Mark Level 1 paid ($39)</button>
+        <button class="btn-grant" style="font-size:.8rem;background:#1e3a5f;" data-waive-payment="${uid}" data-pid="" data-level="0">Waive Level 0</button>
+        <button class="btn-grant" style="font-size:.8rem;background:#1e3a5f;" data-waive-payment="${uid}" data-pid="" data-level="1">Waive Level 1</button>
       </div>`;
   }
   const rows = payments.map(p => {
