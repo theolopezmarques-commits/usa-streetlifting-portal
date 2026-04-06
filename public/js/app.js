@@ -2629,13 +2629,48 @@ async function loadCompHistory() {
   } catch { container.innerHTML = '<p class="muted">Could not load history.</p>'; }
 }
 
+const USA_SL_COMPS = [
+  { name: 'Classic Reckoning | USA Streetlifting Maryland', date: '2025-02-09', location: 'Columbia, MD' },
+  { name: '2025 USA Streetlifting National Championships',  date: '2025-04-26', location: 'Columbia, MD' },
+  { name: 'Lone Star Classic 2025',                        date: '2025-07-19', location: 'Fort Worth, TX' },
+  { name: '2025 Empire State Classic',                     date: '2025-08-10', location: 'New York, NY' },
+  { name: 'Sun City Showdown',                             date: '2025-08-23', location: 'El Paso, TX' },
+  { name: '2025 Mile High Classic',                        date: '2025-09-20', location: 'Arvada, CO' },
+  { name: '2025 Lone Star All4 Championship',              date: '2025-10-18', location: 'Fort Worth, TX' },
+  { name: '2025 Virginia State Classic',                   date: '2025-11-15', location: 'Ashland, VA' },
+  { name: '2025 Classic National Championships',           date: '2025-11-22', location: 'Warrington, PA' },
+  { name: 'San Antonio Classic',                           date: '2026-03-14', location: 'San Antonio, TX' },
+];
+
 function initCompHistory() {
+  // Populate dropdown
+  const sel = document.getElementById('ch-name');
+  if (sel) {
+    USA_SL_COMPS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = `${c.name} (${c.date})`;
+      sel.appendChild(opt);
+    });
+    // Auto-fill date & location when a comp is selected
+    sel.addEventListener('change', () => {
+      const comp = USA_SL_COMPS.find(c => c.name === sel.value);
+      if (comp) {
+        document.getElementById('ch-date').value = comp.date;
+        document.getElementById('ch-location').value = comp.location;
+      } else {
+        document.getElementById('ch-date').value = '';
+        document.getElementById('ch-location').value = '';
+      }
+    });
+  }
+
   document.getElementById('ch-add-btn')?.addEventListener('click', async () => {
     const name     = document.getElementById('ch-name')?.value.trim();
     const date     = document.getElementById('ch-date')?.value;
     const location = document.getElementById('ch-location')?.value.trim();
     const role     = document.getElementById('ch-role')?.value.trim();
-    if (!name || !date) { showToast('Competition name and date required.', 'error'); return; }
+    if (!name || !date) { showToast('Select a competition first.', 'error'); return; }
     try {
       await apiFetch('/api/comp-history', { method: 'POST', body: JSON.stringify({ comp_name: name, comp_date: date, location, role }) });
       document.getElementById('ch-name').value = '';

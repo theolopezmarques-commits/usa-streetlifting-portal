@@ -401,7 +401,9 @@
           <h3>Competition History</h3>
           <p class="muted" style="font-size:.88rem;margin-bottom:1rem;">Log the competitions you have judged.</p>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-            <input id="ch-name" type="text" placeholder="Competition name" style="flex:2;min-width:140px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+            <select id="ch-name" style="flex:2;min-width:200px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#1a1a1a;color:#fff;font-size:.88rem;">
+              <option value="">— Select competition —</option>
+            </select>
             <input id="ch-date" type="date" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
             <input id="ch-location" type="text" placeholder="City, State" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
             <input id="ch-role" type="text" placeholder="Role (Judge, Head Judge…)" style="flex:2;min-width:140px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
@@ -933,7 +935,7 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=9"></script>
+  <script src="/js/app.js?v=10"></script>
   <!-- Capacitor: only present in native app builds -->
   <script>
     if (window.Capacitor) {
