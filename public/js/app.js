@@ -2629,6 +2629,7 @@ async function loadCompHistory() {
   } catch { container.innerHTML = '<p class="muted">Could not load history.</p>'; }
 }
 
+let _compHistoryInited = false;
 const USA_SL_COMPS = [
   { name: 'Classic Reckoning | USA Streetlifting Maryland', date: '2025-02-09', location: 'Columbia, MD' },
   { name: '2025 USA Streetlifting National Championships',  date: '2025-04-26', location: 'Columbia, MD' },
@@ -2643,6 +2644,8 @@ const USA_SL_COMPS = [
 ];
 
 function initCompHistory() {
+  if (_compHistoryInited) return;
+  _compHistoryInited = true;
   // Populate dropdown
   const sel = document.getElementById('ch-name');
   if (sel) {
