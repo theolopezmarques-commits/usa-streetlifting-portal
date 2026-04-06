@@ -119,7 +119,8 @@ app.get('/api/me', authMiddleware, (req, res) => {
 app.get('/api/judges', (req, res) => {
   const { dbAll } = require('./db');
   const judges = dbAll(
-    `SELECT u.id, u.name, u.state, u.email, u.instagram, u.position, u.comps_judged, u.avatar,
+    `SELECT u.id, u.name, u.state, u.email, u.instagram, u.position, u.avatar,
+            (SELECT COUNT(*) FROM comp_history ch WHERE ch.user_id = u.id) AS comps_judged,
             GROUP_CONCAT(c.level ORDER BY c.level) AS levels
      FROM users u
      JOIN certifications c ON c.user_id = u.id
@@ -135,8 +136,9 @@ app.get('/api/judges', (req, res) => {
 app.get('/api/judge/:id', (req, res) => {
   const { dbGet, dbAll } = require('./db');
   const user = dbGet(
-    `SELECT id, name, state, avatar, instagram, position, comps_judged, experience
-     FROM users WHERE id = ? AND email_verified = 1 AND is_admin = 0`,
+    `SELECT u.id, u.name, u.state, u.avatar, u.instagram, u.position, u.experience,
+            (SELECT COUNT(*) FROM comp_history ch WHERE ch.user_id = u.id) AS comps_judged
+     FROM users u WHERE u.id = ? AND u.email_verified = 1 AND u.is_admin = 0`,
     [req.params.id]
   );
   if (!user) return res.status(404).json({ error: 'Judge not found.' });

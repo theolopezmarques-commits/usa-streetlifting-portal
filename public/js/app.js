@@ -2690,10 +2690,10 @@ function initCompHistory() {
 async function openJudgeProfile(judgeId) {
   const overlay = document.getElementById('judge-modal-overlay');
   const container = document.getElementById('judge-modal-content');
-  overlay.style.display = 'block';
+  if (!overlay || !container) { console.error('Judge modal elements missing'); return; }
+  overlay.style.cssText += ';display:block!important';
   document.body.style.overflow = 'hidden';
-  container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:3rem;">Loading…</p>';
-  container.innerHTML = '<p class="muted" style="text-align:center;padding:3rem;">Loading…</p>';
+  container.innerHTML = '<p style="color:#999;text-align:center;padding:3rem;">Loading…</p>';
   try {
     const { user, certs, history } = await fetch(_API + `/api/judge/${judgeId}`).then(r => r.json());
     if (!user) { container.innerHTML = '<p style="color:#f87171;text-align:center;">Judge not found.</p>'; return; }
@@ -2792,15 +2792,14 @@ async function openJudgeProfile(judgeId) {
 
 // Judge modal close
 (function initJudgeModal() {
-  document.getElementById('judge-modal-close')?.addEventListener('click', () => {
-    document.getElementById('judge-modal-overlay').style.display = 'none';
+  function closeJudgeModal() {
+    const o = document.getElementById('judge-modal-overlay');
+    if (o) o.style.display = 'none';
     document.body.style.overflow = '';
-  });
+  }
+  document.getElementById('judge-modal-close')?.addEventListener('click', closeJudgeModal);
   document.getElementById('judge-modal-overlay')?.addEventListener('click', (e) => {
-    if (e.target === document.getElementById('judge-modal-overlay')) {
-      document.getElementById('judge-modal-overlay').style.display = 'none';
-      document.body.style.overflow = '';
-    }
+    if (e.target.id === 'judge-modal-overlay') closeJudgeModal();
   });
 })();
 
