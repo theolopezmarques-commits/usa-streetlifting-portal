@@ -982,9 +982,27 @@ function escapeAttr(str) {
 
 })();
 
-// ===================== PAYMENT BUTTON DELEGATION =====================
+// ===================== PAYMENT BUTTON + JUDGE CARD DELEGATION =====================
 // Registered at module level — guaranteed to run regardless of async init state
 document.addEventListener('click', async (e) => {
+  // Judge card click
+  const judgeCard = e.target.closest('[data-open-judge]');
+  if (judgeCard) {
+    const judgeId = parseInt(judgeCard.dataset.openJudge);
+    const overlay = document.getElementById('judge-modal-overlay');
+    const container = document.getElementById('judge-modal-content');
+    if (overlay && container) {
+      overlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      container.innerHTML = '<p style="color:#999;text-align:center;padding:3rem;">Loading…</p>';
+      try {
+        const { user, certs, history } = await fetch(`/api/judge/${judgeId}`).then(r => r.json());
+        renderJudgeModal(container, user, certs, history);
+      } catch { container.innerHTML = '<p style="color:#f87171;text-align:center;">Could not load profile.</p>'; }
+    }
+    return;
+  }
+
   const markBtn = e.target.closest('[data-mark-paid]');
   if (markBtn && !markBtn.disabled) {
     const uid2 = parseInt(markBtn.dataset.markPaid);
@@ -2489,8 +2507,7 @@ function renderDirectory(judges) {
         ? `<div style="text-align:center;"><div style="font-size:1rem;">📸</div><div style="font-size:.6rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.1rem;">Insta</div></div>` : '';
       const hasStats = j.comps_judged > 0 || j.instagram;
       html += `
-        <div style="position:relative;background:linear-gradient(160deg,${clr}18 0%,rgba(10,10,14,1) 55%);border:1px solid ${clr}30;border-radius:20px;overflow:hidden;cursor:pointer;transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease;"
-          onclick="openJudgeProfile(${j.id || 0})"
+        <div data-open-judge="${j.id || 0}" style="position:relative;background:linear-gradient(160deg,${clr}18 0%,rgba(10,10,14,1) 55%);border:1px solid ${clr}30;border-radius:20px;overflow:hidden;cursor:pointer;transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease;"
           onmouseenter="this.style.transform='translateY(-8px) scale(1.03)';this.style.boxShadow='0 24px 48px ${clr}30,0 0 0 1px ${clr}50';this.querySelector('.shine').style.opacity='1'"
           onmouseleave="this.style.transform='';this.style.boxShadow='';this.querySelector('.shine').style.opacity='0'">
           <!-- Shine sweep -->
@@ -2687,16 +2704,8 @@ function initCompHistory() {
 }
 
 // ===================== JUDGE PROFILE =====================
-async function openJudgeProfile(judgeId) {
-  const overlay = document.getElementById('judge-modal-overlay');
-  const container = document.getElementById('judge-modal-content');
-  if (!overlay || !container) { console.error('Judge modal elements missing'); return; }
-  overlay.style.cssText += ';display:block!important';
-  document.body.style.overflow = 'hidden';
-  container.innerHTML = '<p style="color:#999;text-align:center;padding:3rem;">Loading…</p>';
-  try {
-    const { user, certs, history } = await fetch(_API + `/api/judge/${judgeId}`).then(r => r.json());
-    if (!user) { container.innerHTML = '<p style="color:#f87171;text-align:center;">Judge not found.</p>'; return; }
+function renderJudgeModal(container, user, certs, history) {
+  if (!user) { container.innerHTML = '<p style="color:#f87171;text-align:center;">Judge not found.</p>'; return; }
 
     const initials = user.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
     const avatarHtml = user.avatar
@@ -2785,9 +2794,6 @@ async function openJudgeProfile(judgeId) {
             </div>`).join('')}
         </div>` : '<p style="color:var(--clr-muted);font-size:.9rem;">No competitions logged yet.</p>'}
     `;
-  } catch {
-    container.innerHTML = '<p style="color:#f87171;text-align:center;">Could not load profile.</p>';
-  }
 }
 
 // Judge modal close
