@@ -1417,8 +1417,8 @@ async function loadAdmin() {
       ${l3html}
       <!-- Tabs -->
       <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.5rem;">
-        <button id="tab-users-btn" class="btn-grant" style="font-size:.85rem;padding:.4rem 1rem;" onclick="showAdminTab('users')">👥 Users</button>
-        <button id="tab-exams-btn" style="font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;" onclick="showAdminTab('exams')">📝 Exam Results</button>
+        <button id="tab-users-btn" data-admin-tab="users" class="btn-grant" style="font-size:.85rem;padding:.4rem 1rem;">👥 Users</button>
+        <button id="tab-exams-btn" data-admin-tab="exams" style="font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;">📝 Course Progress & Exams</button>
       </div>
 
       <!-- Users tab -->
@@ -1477,6 +1477,11 @@ async function loadAdmin() {
           loadAdmin();
         } catch (err) { showToast(err.message, 'error'); }
       });
+    });
+
+    // Tab buttons
+    section.querySelectorAll('[data-admin-tab]').forEach(btn => {
+      btn.addEventListener('click', () => showAdminTab(btn.dataset.adminTab));
     });
 
     // Grant L3 buttons
@@ -1695,37 +1700,67 @@ async function loadAdmin() {
 }
 
 function showAdminTab(tab) {
-  document.getElementById('admin-tab-users').style.display = tab === 'users' ? '' : 'none';
-  document.getElementById('admin-tab-exams').style.display = tab === 'exams' ? '' : 'none';
-  document.getElementById('tab-users-btn').className = tab === 'users' ? 'btn-grant' : '';
-  document.getElementById('tab-users-btn').style.cssText = tab === 'users' ? 'font-size:.85rem;padding:.4rem 1rem;' : 'font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;';
-  document.getElementById('tab-exams-btn').className = tab === 'exams' ? 'btn-grant' : '';
-  document.getElementById('tab-exams-btn').style.cssText = tab === 'exams' ? 'font-size:.85rem;padding:.4rem 1rem;' : 'font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;';
-  if (tab === 'exams') loadExamResults();
+  ['users','exams'].forEach(t => {
+    const el = document.getElementById(`admin-tab-${t}`);
+    const btn = document.getElementById(`tab-${t}-btn`);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      if (t === tab) { btn.className = 'btn-grant'; btn.style.cssText = 'font-size:.85rem;padding:.4rem 1rem;'; }
+      else { btn.className = ''; btn.style.cssText = 'font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;'; }
+    }
+  });
+  if (tab === 'exams') loadCourseProgress();
 }
 
-async function loadExamResults() {
+async function loadCourseProgress() {
   const container = document.getElementById('exam-results-content');
   if (!container) return;
   container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading…</p>';
   try {
-    const { exams } = await apiFetch('/api/admin/exam-results');
-    if (!exams.length) { container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">No exam attempts yet.</p>'; return; }
+    const { users } = await apiFetch('/api/admin/course-progress');
+    if (!users.length) {
+      container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">No course activity yet.</p>';
+      return;
+    }
+
+    function progressBar(pct) {
+      const color = pct === 100 ? '#4cd964' : pct > 0 ? '#f5a623' : 'rgba(255,255,255,.1)';
+      return `<div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;width:80px;display:inline-block;vertical-align:middle;">
+        <div style="height:8px;border-radius:4px;width:${pct}%;background:${color};transition:width .3s;"></div>
+      </div> <span style="font-size:.78rem;color:${color};margin-left:.3rem;">${pct}%</span>`;
+    }
+
+    function examCell(lvl) {
+      if (lvl.exam_attempts === 0) return '<span style="color:rgba(255,255,255,.2);font-size:.8rem;">—</span>';
+      const color = lvl.exam_passed ? '#4cd964' : '#f87171';
+      return `<span style="font-weight:700;color:${color};font-size:.88rem;">${lvl.exam_best}%</span>
+        <span style="font-size:.72rem;color:${color};margin-left:.2rem;">${lvl.exam_passed ? '✓' : '✗'}</span>
+        <span style="font-size:.7rem;color:var(--clr-muted);margin-left:.2rem;">(${lvl.exam_attempts} try)</span>`;
+    }
+
     container.innerHTML = `
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>Name</th><th>Email</th><th>State</th><th>Level</th><th>Score</th><th>Result</th><th>Date</th></tr></thead>
+      <div class="admin-table-wrap" style="overflow-x:auto;">
+        <table class="admin-table" style="min-width:700px;">
+          <thead>
+            <tr>
+              <th>Name</th><th>Email</th><th>State</th>
+              <th>L0 Progress</th><th>L0 Exam</th>
+              <th>L1 Progress</th><th>L1 Exam</th>
+              <th>L2 Progress</th><th>L2 Exam</th>
+            </tr>
+          </thead>
           <tbody>
-            ${exams.map(e => `
-              <tr>
-                <td style="font-weight:600;">${escapeHtml(e.name || '—')}</td>
-                <td style="font-size:.82rem;">${escapeHtml(e.email)}</td>
-                <td>${escapeHtml(e.state || '—')}</td>
-                <td>Level ${e.level}</td>
-                <td style="font-weight:700;color:${e.score >= 70 ? '#4cd964' : '#f87171'};">${e.score}%</td>
-                <td><span style="font-weight:700;color:${e.passed ? '#4cd964' : '#f87171'};">${e.passed ? '✓ Passed' : '✗ Failed'}</span></td>
-                <td style="font-size:.8rem;color:var(--clr-muted);">${new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
-              </tr>`).join('')}
+            ${users.map(u => {
+              const [l0, l1, l2] = u.levels;
+              return `<tr>
+                <td style="font-weight:600;white-space:nowrap;">${escapeHtml(u.name)}</td>
+                <td style="font-size:.78rem;color:var(--clr-muted);">${escapeHtml(u.email)}</td>
+                <td style="font-size:.82rem;">${escapeHtml(u.state || '—')}</td>
+                <td>${progressBar(l0.pct)}</td><td>${examCell(l0)}</td>
+                <td>${progressBar(l1.pct)}</td><td>${examCell(l1)}</td>
+                <td>${progressBar(l2.pct)}</td><td>${examCell(l2)}</td>
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>`;

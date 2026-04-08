@@ -524,17 +524,26 @@ router.post('/waive-payment', requireAdmin, (req, res) => {
   res.json({ ok: true, message: `Payment waived for ${user?.name}` });
 });
 
-// GET /api/admin/exam-results — all exam attempts with user info
-router.get('/exam-results', requireAdmin, (req, res) => {
-  const rows = dbAll(
-    `SELECT ea.id, ea.level, ea.score, ea.passed, ea.created_at,
-            u.id AS user_id, u.name, u.email, u.state
-     FROM exam_attempts ea
-     JOIN users u ON u.id = ea.user_id
-     ORDER BY ea.created_at DESC`,
-    []
-  );
-  res.json({ exams: rows });
+// GET /api/admin/course-progress — per-user video progress + best exam score per level
+router.get('/course-progress', requireAdmin, (req, res) => {
+  const VIDEO_COUNTS = { 0: 6, 1: 9, 2: 9 };
+  const users = dbAll(`SELECT id, name, email, state FROM users WHERE is_admin = 0 ORDER BY name`, []);
+
+  const result = users.map(u => {
+    const levels = [0, 1, 2].map(lvl => {
+      const watched = dbGet(`SELECT COUNT(*) AS cnt FROM video_progress WHERE user_id = ? AND level = ?`, [u.id, lvl])?.cnt || 0;
+      const total = VIDEO_COUNTS[lvl];
+      const pct = Math.round((watched / total) * 100);
+      const exam = dbGet(
+        `SELECT MAX(score) AS best, MAX(passed) AS passed, COUNT(*) AS attempts FROM exam_attempts WHERE user_id = ? AND level = ?`,
+        [u.id, lvl]
+      );
+      return { level: lvl, watched, total, pct, exam_best: exam?.best || null, exam_passed: !!(exam?.passed), exam_attempts: exam?.attempts || 0 };
+    });
+    return { ...u, levels };
+  }).filter(u => u.levels.some(l => l.watched > 0 || l.exam_attempts > 0));
+
+  res.json({ users: result });
 });
 
 module.exports = router;
