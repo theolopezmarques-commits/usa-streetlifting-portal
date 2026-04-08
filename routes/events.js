@@ -29,6 +29,20 @@ router.get('/my', (req, res) => {
   res.json({ events: rows });
 });
 
+// GET /api/events/:id/judges — list of judges registered for an event (public)
+router.get('/:id/judges', (req, res) => {
+  const eventId = parseInt(req.params.id);
+  const judges = dbAll(
+    `SELECT u.name, u.state, u.avatar
+     FROM event_registrations r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.event_id = ?
+     ORDER BY u.name ASC`,
+    [eventId]
+  );
+  res.json({ judges });
+});
+
 // POST /api/events/:id/register — judge signs up for an event
 router.post('/:id/register', async (req, res) => {
   const eventId = parseInt(req.params.id);

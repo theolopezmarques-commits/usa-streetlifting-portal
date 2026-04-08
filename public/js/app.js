@@ -2707,7 +2707,16 @@ async function loadEvents() {
       ? await apiFetch('/api/events/my').catch(() => ({ events: [] }))
       : { events: [] };
     const myIds = new Set((myData.events || []).map(e => e.id));
-    renderEvents(eventsData.events || [], myIds);
+    // Fetch judges for all events in parallel
+    const events = eventsData.events || [];
+    const judgesPerEvent = await Promise.all(
+      events.map(ev =>
+        fetch(_API + `/api/events/${ev.id}/judges`, { credentials: 'include' })
+          .then(r => r.json()).then(d => d.judges || []).catch(() => [])
+      )
+    );
+    events.forEach((ev, i) => { ev._judges = judgesPerEvent[i]; });
+    renderEvents(events, myIds);
   } catch {
     container.innerHTML = '<p style="color:#f87171;text-align:center;">Could not load events.</p>';
   }
@@ -2740,6 +2749,22 @@ function renderEvents(events, myIds) {
             }
           </div>
         </div>
+        ${ev._judges && ev._judges.length ? `
+        <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid rgba(255,255,255,.07);">
+          <p style="font-size:.78rem;font-weight:700;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Registered Judges</p>
+          <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+            ${ev._judges.map(j => {
+              const initials = j.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+              const avatar = j.avatar
+                ? `<div style="width:22px;height:22px;border-radius:50%;background:center/cover url('${escapeAttr(j.avatar)}');flex-shrink:0;"></div>`
+                : `<div style="width:22px;height:22px;border-radius:50%;background:rgba(200,16,46,.2);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:var(--clr-primary);flex-shrink:0;">${escapeHtml(initials)}</div>`;
+              return `<div style="display:flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:.25rem .6rem .25rem .3rem;font-size:.8rem;">
+                ${avatar}
+                <span>${escapeHtml(j.name)}${j.state ? `<span style="color:var(--clr-muted);font-size:.72rem;margin-left:.3rem;">${escapeHtml(j.state)}</span>` : ''}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
       </div>`;
   }
   container.innerHTML = html;
