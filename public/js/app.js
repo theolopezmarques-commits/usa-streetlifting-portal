@@ -1048,6 +1048,65 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+// ===================== PASSWORD RESET =====================
+(function initPasswordReset() {
+  // Forgot password modal
+  document.getElementById('forgot-pw-link')?.addEventListener('click', () => {
+    const m = document.getElementById('forgot-pw-modal');
+    m.style.display = 'flex';
+    document.getElementById('forgot-pw-email').focus();
+  });
+  document.getElementById('forgot-pw-close')?.addEventListener('click', () => {
+    document.getElementById('forgot-pw-modal').style.display = 'none';
+  });
+  document.getElementById('forgot-pw-submit')?.addEventListener('click', async () => {
+    const email = document.getElementById('forgot-pw-email').value.trim();
+    const errEl = document.getElementById('forgot-pw-error');
+    const succEl = document.getElementById('forgot-pw-success');
+    const btn = document.getElementById('forgot-pw-submit');
+    errEl.textContent = '';
+    if (!email) { errEl.textContent = 'Please enter your email.'; return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      await apiFetch('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+      succEl.style.display = 'block';
+      btn.style.display = 'none';
+    } catch (err) {
+      errEl.textContent = err.message;
+      btn.disabled = false; btn.textContent = 'Send Reset Link';
+    }
+  });
+
+  // Reset password modal — open if ?reset_token= in URL
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = params.get('reset_token');
+  if (resetToken) {
+    const m = document.getElementById('reset-pw-modal');
+    m.style.display = 'flex';
+    // Clean URL
+    window.history.replaceState({}, '', '/');
+  }
+  document.getElementById('reset-pw-submit')?.addEventListener('click', async () => {
+    const pw = document.getElementById('reset-pw-new').value;
+    const pw2 = document.getElementById('reset-pw-confirm').value;
+    const errEl = document.getElementById('reset-pw-error');
+    const btn = document.getElementById('reset-pw-submit');
+    errEl.textContent = '';
+    if (pw.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+    if (pw !== pw2) { errEl.textContent = 'Passwords do not match.'; return; }
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token: resetToken, password: pw }) });
+      document.getElementById('reset-pw-modal').style.display = 'none';
+      showToast('Password updated! Please log in.', 'success');
+      navigate('login');
+    } catch (err) {
+      errEl.textContent = err.message;
+      btn.disabled = false; btn.textContent = 'Set New Password';
+    }
+  });
+})();
+
 // ===================== MOVEMENT RULES MODAL =====================
 const MOVEMENT_RULES = {
   muscleup: {

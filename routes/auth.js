@@ -200,4 +200,59 @@ router.post('/logout', (_req, res) => {
   res.json({ message: 'Logged out.' });
 });
 
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email required.' });
+  const user = dbGet('SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
+  // Always respond ok to avoid user enumeration
+  if (!user) return res.json({ ok: true });
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+  dbRun('DELETE FROM password_resets WHERE user_id = ?', [user.id]);
+  dbRun('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)', [user.id, token, expires]);
+
+  const baseUrl = process.env.BASE_URL || 'https://usastreetliftingjudging.org';
+  const link = `${baseUrl}/?reset_token=${token}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Reset your USASL Judge Portal password',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#0a0a0a;padding:32px;border-radius:8px;color:#f0f0f0;">
+        <img src="https://usastreetlifting.org/wp-content/uploads/2024/08/cropped-USA-Streetlifting-Transparent-File-PNG-1.png" alt="USA Streetlifting" style="height:48px;margin-bottom:24px;">
+        <h2 style="color:#c0392b;">Reset your password</h2>
+        <p>Hi ${user.name},</p>
+        <p>Click below to reset your password. This link expires in <strong>1 hour</strong>.</p>
+        <div style="text-align:center;padding:24px 0;">
+          <a href="${link}" style="display:inline-block;padding:14px 32px;background:#c0392b;color:#fff;border-radius:6px;text-decoration:none;font-size:1rem;font-weight:bold;">Reset Password</a>
+        </div>
+        <p style="color:#888;font-size:.85rem;">If you didn't request this, ignore this email — your password won't change.</p>
+        <p style="color:#555;font-size:.75rem;word-break:break-all;">Or copy: ${link}</p>
+      </div>`
+  });
+  res.json({ ok: true });
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token and password required.' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+  const row = dbGet(
+    `SELECT pr.user_id, pr.expires_at, pr.used FROM password_resets pr WHERE pr.token = ?`,
+    [token]
+  );
+  if (!row) return res.status(400).json({ error: 'Invalid or expired reset link.' });
+  if (row.used) return res.status(400).json({ error: 'This reset link has already been used.' });
+  if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Reset link has expired.' });
+
+  const hash = await bcrypt.hash(password, SALT_ROUNDS);
+  dbRun('UPDATE users SET password_hash = ? WHERE id = ?', [hash, row.user_id]);
+  dbRun('UPDATE password_resets SET used = 1 WHERE token = ?', [token]);
+  res.json({ ok: true });
+});
+
 module.exports = router;

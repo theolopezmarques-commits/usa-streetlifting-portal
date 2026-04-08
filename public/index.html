@@ -345,6 +345,7 @@
             <span class="btn-spinner hidden"></span>
           </button>
         </form>
+        <p class="switch-link" style="margin-top:.5rem;"><a id="forgot-pw-link" style="cursor:pointer;color:var(--clr-muted);font-size:.88rem;">Forgot your password?</a></p>
         <p class="switch-link">Don't have an account? <a data-nav="register">Register</a></p>
       </div>
     </section>
@@ -943,7 +944,32 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=19"></script>
+  <!-- ============ FORGOT PASSWORD MODAL ============ -->
+  <div id="forgot-pw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
+    <div style="background:#111;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:2rem;width:100%;max-width:420px;position:relative;">
+      <button id="forgot-pw-close" style="position:absolute;top:.75rem;right:.75rem;background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;">&times;</button>
+      <h3 style="font-family:var(--font-heading);margin-bottom:.5rem;">Reset Password</h3>
+      <p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.25rem;">Enter your email and we'll send you a reset link.</p>
+      <input id="forgot-pw-email" type="email" placeholder="your@email.com" style="width:100%;padding:.6rem .8rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.95rem;margin-bottom:.75rem;">
+      <div id="forgot-pw-error" style="color:#f87171;font-size:.85rem;margin-bottom:.5rem;"></div>
+      <button id="forgot-pw-submit" class="btn btn-primary btn-full">Send Reset Link</button>
+      <p id="forgot-pw-success" style="display:none;color:#4cd964;font-size:.9rem;margin-top:.75rem;text-align:center;">✓ Check your email for a reset link!</p>
+    </div>
+  </div>
+
+  <!-- ============ RESET PASSWORD MODAL ============ -->
+  <div id="reset-pw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
+    <div style="background:#111;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:2rem;width:100%;max-width:420px;position:relative;">
+      <h3 style="font-family:var(--font-heading);margin-bottom:.5rem;">Choose a New Password</h3>
+      <p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.25rem;">Enter and confirm your new password.</p>
+      <input id="reset-pw-new" type="password" placeholder="New password (min 8 chars)" style="width:100%;padding:.6rem .8rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.95rem;margin-bottom:.75rem;">
+      <input id="reset-pw-confirm" type="password" placeholder="Confirm new password" style="width:100%;padding:.6rem .8rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.95rem;margin-bottom:.75rem;">
+      <div id="reset-pw-error" style="color:#f87171;font-size:.85rem;margin-bottom:.5rem;"></div>
+      <button id="reset-pw-submit" class="btn btn-primary btn-full">Set New Password</button>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=20"></script>
   <!-- Capacitor: only present in native app builds -->
   <script>
     if (window.Capacitor) {
