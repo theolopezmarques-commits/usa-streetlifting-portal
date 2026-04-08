@@ -237,22 +237,27 @@ router.post('/forgot-password', async (req, res) => {
 
 // POST /api/auth/reset-password
 router.post('/reset-password', async (req, res) => {
-  const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ error: 'Token and password required.' });
-  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token and password required.' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
 
-  const row = dbGet(
-    `SELECT pr.user_id, pr.expires_at, pr.used FROM password_resets pr WHERE pr.token = ?`,
-    [token]
-  );
-  if (!row) return res.status(400).json({ error: 'Invalid or expired reset link.' });
-  if (row.used) return res.status(400).json({ error: 'This reset link has already been used.' });
-  if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Reset link has expired.' });
+    const row = dbGet(
+      `SELECT pr.user_id, pr.expires_at, pr.used FROM password_resets pr WHERE pr.token = ?`,
+      [token]
+    );
+    if (!row) return res.status(400).json({ error: 'Invalid or expired reset link.' });
+    if (row.used) return res.status(400).json({ error: 'This reset link has already been used.' });
+    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Reset link has expired.' });
 
-  const hash = await bcrypt.hash(password, SALT_ROUNDS);
-  dbRun('UPDATE users SET password_hash = ? WHERE id = ?', [hash, row.user_id]);
-  dbRun('UPDATE password_resets SET used = 1 WHERE token = ?', [token]);
-  res.json({ ok: true });
+    const hash = await bcrypt.hash(password, SALT_ROUNDS);
+    dbRun('UPDATE users SET password = ? WHERE id = ?', [hash, row.user_id]);
+    dbRun('UPDATE password_resets SET used = 1 WHERE token = ?', [token]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
 });
 
 module.exports = router;
