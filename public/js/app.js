@@ -1433,6 +1433,14 @@ async function loadAdmin() {
       ${eventsAdminHtml}
       ${chatRoomsHtml}
       ${l3html}
+      <!-- Tabs -->
+      <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.5rem;">
+        <button id="tab-users-btn" class="btn-grant" style="font-size:.85rem;padding:.4rem 1rem;" onclick="showAdminTab('users')">👥 Users</button>
+        <button id="tab-exams-btn" style="font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;" onclick="showAdminTab('exams')">📝 Exam Results</button>
+      </div>
+
+      <!-- Users tab -->
+      <div id="admin-tab-users">
       <div class="admin-table-wrap">
         <table class="admin-table">
           <thead>
@@ -1467,6 +1475,12 @@ async function loadAdmin() {
               `).join('')}
           </tbody>
         </table>
+      </div>
+      </div><!-- end admin-tab-users -->
+
+      <!-- Exams tab -->
+      <div id="admin-tab-exams" style="display:none;">
+        <div id="exam-results-content"><p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading exam results…</p></div>
       </div>
     `;
 
@@ -1696,6 +1710,44 @@ async function loadAdmin() {
   } catch (e) {
     section.innerHTML = '<p style="color:#f87171;text-align:center;padding:2rem;">Could not load admin data.</p>';
   }
+}
+
+function showAdminTab(tab) {
+  document.getElementById('admin-tab-users').style.display = tab === 'users' ? '' : 'none';
+  document.getElementById('admin-tab-exams').style.display = tab === 'exams' ? '' : 'none';
+  document.getElementById('tab-users-btn').className = tab === 'users' ? 'btn-grant' : '';
+  document.getElementById('tab-users-btn').style.cssText = tab === 'users' ? 'font-size:.85rem;padding:.4rem 1rem;' : 'font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;';
+  document.getElementById('tab-exams-btn').className = tab === 'exams' ? 'btn-grant' : '';
+  document.getElementById('tab-exams-btn').style.cssText = tab === 'exams' ? 'font-size:.85rem;padding:.4rem 1rem;' : 'font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;';
+  if (tab === 'exams') loadExamResults();
+}
+
+async function loadExamResults() {
+  const container = document.getElementById('exam-results-content');
+  if (!container) return;
+  container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading…</p>';
+  try {
+    const { exams } = await apiFetch('/api/admin/exam-results');
+    if (!exams.length) { container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">No exam attempts yet.</p>'; return; }
+    container.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Name</th><th>Email</th><th>State</th><th>Level</th><th>Score</th><th>Result</th><th>Date</th></tr></thead>
+          <tbody>
+            ${exams.map(e => `
+              <tr>
+                <td style="font-weight:600;">${escapeHtml(e.name || '—')}</td>
+                <td style="font-size:.82rem;">${escapeHtml(e.email)}</td>
+                <td>${escapeHtml(e.state || '—')}</td>
+                <td>Level ${e.level}</td>
+                <td style="font-weight:700;color:${e.score >= 70 ? '#4cd964' : '#f87171'};">${e.score}%</td>
+                <td><span style="font-weight:700;color:${e.passed ? '#4cd964' : '#f87171'};">${e.passed ? '✓ Passed' : '✗ Failed'}</span></td>
+                <td style="font-size:.8rem;color:var(--clr-muted);">${new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (err) { container.innerHTML = `<p style="color:#f87171;text-align:center;padding:2rem;">${err.message}</p>`; }
 }
 
 function renderPaymentSection(user) {

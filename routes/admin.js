@@ -524,4 +524,17 @@ router.post('/waive-payment', requireAdmin, (req, res) => {
   res.json({ ok: true, message: `Payment waived for ${user?.name}` });
 });
 
+// GET /api/admin/exam-results — all exam attempts with user info
+router.get('/exam-results', requireAdmin, (req, res) => {
+  const rows = dbAll(
+    `SELECT ea.id, ea.level, ea.score, ea.passed, ea.created_at,
+            u.id AS user_id, u.name, u.email, u.state
+     FROM exam_attempts ea
+     JOIN users u ON u.id = ea.user_id
+     ORDER BY ea.created_at DESC`,
+    []
+  );
+  res.json({ exams: rows });
+});
+
 module.exports = router;
