@@ -985,24 +985,6 @@ function escapeAttr(str) {
 // ===================== PAYMENT BUTTON + JUDGE CARD DELEGATION =====================
 // Registered at module level — guaranteed to run regardless of async init state
 document.addEventListener('click', async (e) => {
-  // Judge card click
-  const judgeCard = e.target.closest('[data-open-judge]');
-  if (judgeCard) {
-    const judgeId = parseInt(judgeCard.dataset.openJudge);
-    const overlay = document.getElementById('judge-modal-overlay');
-    const container = document.getElementById('judge-modal-content');
-    if (overlay && container) {
-      overlay.style.display = 'block';
-      document.body.style.overflow = 'hidden';
-      container.innerHTML = '<p style="color:#999;text-align:center;padding:3rem;">Loading…</p>';
-      try {
-        const { user, certs, history } = await fetch(`/api/judge/${judgeId}`).then(r => r.json());
-        renderJudgeModal(container, user, certs, history);
-      } catch { container.innerHTML = '<p style="color:#f87171;text-align:center;">Could not load profile.</p>'; }
-    }
-    return;
-  }
-
   const markBtn = e.target.closest('[data-mark-paid]');
   if (markBtn && !markBtn.disabled) {
     const uid2 = parseInt(markBtn.dataset.markPaid);
@@ -2588,6 +2570,23 @@ function renderDirectory(judges) {
     html += `</div></div>`;
   }
   container.innerHTML = html;
+
+  // Bind click directly on each card — delegation has proven unreliable here
+  container.querySelectorAll('[data-open-judge]').forEach(card => {
+    card.addEventListener('click', () => {
+      const judgeId = parseInt(card.dataset.openJudge);
+      const overlay = document.getElementById('judge-modal-overlay');
+      const cont    = document.getElementById('judge-modal-content');
+      if (!overlay || !cont) return;
+      overlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      cont.innerHTML = '<p style="color:#999;text-align:center;padding:3rem;">Loading…</p>';
+      fetch(`/api/judge/${judgeId}`)
+        .then(r => r.json())
+        .then(({ user, certs, history }) => renderJudgeModal(cont, user, certs, history))
+        .catch(() => { cont.innerHTML = '<p style="color:#f87171;text-align:center;">Could not load profile.</p>'; });
+    });
+  });
 }
 
 // ===================== EVENTS =====================
