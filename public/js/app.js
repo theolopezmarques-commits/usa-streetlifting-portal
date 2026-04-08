@@ -2214,8 +2214,7 @@ function renderCourseLevel(level, prog, isAdmin) {
              <p style="color:var(--clr-muted);font-size:.9rem;margin-top:.35rem;">Renew to restore your judging privileges.</p>
              <button class="btn btn-primary" style="margin-top:1rem;" onclick="navigate('payment')">Renew Certification</button>`
           : `<p>Your certification is active${certDaysLeft !== null && certDaysLeft <= 30 ? ` — <strong style="color:#f5a623;">expires in ${certDaysLeft} days</strong>` : ''}. Download your official certificate below.</p>
-             <button class="btn btn-primary" style="margin-top:1rem;" id="dl-cert-btn-${level}">Download Certificate</button>
-             ${certDaysLeft !== null && certDaysLeft <= 60 ? `<button class="btn btn-outline" style="margin-top:.5rem;margin-left:.75rem;" onclick="navigate('payment')">Renew Early</button>` : ''}`
+             <a href="/api/certificate/${level}" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-block;text-decoration:none;">⬇ Download Certificate</a>`
         : '<p>The Director will approve your certification after the oral exam.</p><span class="lock-badge">🔒 Pending Director approval</span>'}
     </div>`;
 
@@ -2285,11 +2284,6 @@ function renderCourseLevel(level, prog, isAdmin) {
         renderCourseLevel(lv, prog, true);
       } catch (err) { showToast(err.message, 'error'); }
     });
-  });
-
-  // Download certificate button
-  document.getElementById(`dl-cert-btn-${level}`)?.addEventListener('click', () => {
-    downloadCertificate(level);
   });
 
   // Start exam button
