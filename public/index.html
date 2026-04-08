@@ -41,7 +41,7 @@
         <a id="nav-admin" data-nav="admin" class="hidden btn-nav btn-nav--admin">⭐ Admin</a>
         <a id="nav-directory" data-nav="directory">Judges</a>
         <a id="nav-events" data-nav="events">Events</a>
-        <a id="nav-chat" data-nav="chat" class="hidden">Chat</a>
+        <a id="nav-chat" data-nav="chat" class="hidden" style="position:relative;">Chat<span id="chat-unread-badge" style="display:none;position:absolute;top:-6px;right:-10px;background:#c0392b;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:.7rem;font-weight:700;line-height:18px;text-align:center;padding:0 4px;pointer-events:none;"></span></a>
         <a id="nav-logout" data-action="logout" class="hidden btn-nav">Logout</a>
       </div>
     </div>
@@ -969,7 +969,7 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=20"></script>
+  <script src="/js/app.js?v=21"></script>
   <!-- Capacitor: only present in native app builds -->
   <script>
     if (window.Capacitor) {

@@ -94,6 +94,28 @@ router.post('/send', requireCertified, (req, res) => {
   res.json({ message: msg });
 });
 
+// GET /api/chat/unread?since=<id> — count of new messages since last seen
+router.get('/unread', requireCertified, (req, res) => {
+  const since = parseInt(req.query.since) || 0;
+  const user = dbGet('SELECT state, is_admin FROM users WHERE id = ?', [req.user.id]);
+  const allRooms = dbAll('SELECT * FROM chat_rooms ORDER BY id ASC', []);
+  const visible = allRooms.filter(r => {
+    if (user?.is_admin) return true;
+    if (r.scope === 'admin') return false;
+    if (r.scope === 'all') return true;
+    return user?.state === r.scope;
+  });
+  let count = 0;
+  for (const room of visible) {
+    const row = dbGet(
+      `SELECT COUNT(*) AS cnt FROM messages WHERE room = ? AND id > ? AND user_id != ?`,
+      [room.room_id, since, req.user.id]
+    );
+    count += row?.cnt || 0;
+  }
+  res.json({ unread: count });
+});
+
 // DELETE /api/chat/messages/:id — admin only
 router.delete('/messages/:id', (req, res) => {
   const user = dbGet('SELECT is_admin FROM users WHERE id = ?', [req.user.id]);

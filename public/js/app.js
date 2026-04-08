@@ -392,6 +392,9 @@ async function loadDashboard() {
     const chatNav = document.getElementById('nav-chat');
     if (chatNav) chatNav.classList.toggle('hidden', !currentUser._isCertified && !currentUser.is_admin);
 
+    // Check for unread chat messages
+    if (currentUser._isCertified || currentUser.is_admin) checkUnreadMessages();
+
     // Only show paid payments, deduplicated per level (keep latest)
     const seen = new Set();
     const paidOnly = data.payments.filter(p => {
@@ -2968,10 +2971,36 @@ let chatPollInterval = null;
 let lastMessageId = 0;
 let currentRoom = 'general';
 
+function getChatLastSeen() {
+  return parseInt(localStorage.getItem(`chat_last_seen_${currentUser?.id}`) || '0');
+}
+function setChatLastSeen(id) {
+  if (currentUser?.id) localStorage.setItem(`chat_last_seen_${currentUser.id}`, id);
+}
+
+async function checkUnreadMessages() {
+  try {
+    const since = getChatLastSeen();
+    const { unread } = await apiFetch(`/api/chat/unread?since=${since}`);
+    const badge = document.getElementById('chat-unread-badge');
+    if (!badge) return;
+    if (unread > 0) {
+      badge.textContent = unread > 99 ? '99+' : unread;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch { /* silent */ }
+}
+
 async function loadChat() {
   const box = document.getElementById('chat-box');
   const roomsEl = document.getElementById('chat-rooms');
   if (!box) return;
+
+  // Clear unread badge when chat is opened
+  const badge = document.getElementById('chat-unread-badge');
+  if (badge) badge.style.display = 'none';
 
   if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
 
@@ -3042,6 +3071,7 @@ async function loadChat() {
         const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
         messages.forEach(m => appendChatMessage(m, box));
         lastMessageId = messages[messages.length - 1].id;
+        setChatLastSeen(lastMessageId);
         if (atBottom) box.scrollTop = box.scrollHeight;
       }
     } catch { /* silent */ }
@@ -3064,7 +3094,10 @@ async function switchRoom(rooms) {
     const { messages } = await apiFetch(`/api/chat/history?room=${encodeURIComponent(currentRoom)}`);
     box.innerHTML = '';
     messages.forEach(m => appendChatMessage(m, box));
-    if (messages.length) lastMessageId = messages[messages.length - 1].id;
+    if (messages.length) {
+      lastMessageId = messages[messages.length - 1].id;
+      setChatLastSeen(lastMessageId);
+    }
     box.scrollTop = box.scrollHeight;
   } catch (err) {
     box.innerHTML = `<p style="color:#f87171;text-align:center;">${escapeHtml(err.message)}</p>`;
