@@ -458,12 +458,27 @@ function updateCertCard(courseStatus) {
     const names = ['Level 0 – Beginner', 'Level 1 – Local', 'Level 2 – State', 'Level 3 – National'];
     statusEl.textContent = names[highest] + ' Judge';
     statusEl.style.color = 'var(--clr-success)';
-    detailEl.textContent = 'Your certification is active.';
     levelEl.textContent = `L${highest}`;
     progressEl.style.strokeDashoffset = totalStroke * (1 - (highest + 1) / 4);
     progressEl.style.transition = 'stroke-dashoffset 1s ease';
     actionBtn.textContent = highest < 3 ? 'View My Course' : 'Renew';
     actionBtn.dataset.nav = 'course';
+
+    // Download buttons for every certified level
+    const certifiedLevels = [];
+    if (prog.level0?.certified) certifiedLevels.push(0);
+    if (prog.level1?.certified) certifiedLevels.push(1);
+    if (prog.level2?.certified) certifiedLevels.push(2);
+    if (courseStatus.level3?.certified) certifiedLevels.push(3);
+
+    detailEl.innerHTML = 'Your certification is active.<br><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;">'
+      + certifiedLevels.map(lvl =>
+          `<a href="/api/certificate/${lvl}" target="_blank" rel="noopener"
+              style="display:inline-block;padding:.4rem .9rem;border-radius:8px;background:rgba(76,217,100,.15);border:1px solid rgba(76,217,100,.4);color:#4cd964;font-size:.82rem;font-weight:700;text-decoration:none;">
+            ⬇ Level ${lvl} Certificate
+          </a>`
+        ).join('')
+      + '</div>';
   } else {
     statusEl.textContent = 'Not Certified';
     detailEl.textContent = 'Complete your course and exam to get certified.';
