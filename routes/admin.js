@@ -496,9 +496,6 @@ router.post('/force-grant', requireAdmin, (req, res) => {
       [userId, addPayment.amount_cents, addPayment.description]);
   }
   dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, ?)`, [userId, level, req.user.id]);
-  if (level === 1) {
-    dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, ?)`, [userId, req.user.id]);
-  }
   const user = dbGet('SELECT name FROM users WHERE id = ?', [userId]);
   res.json({ ok: true, message: `Granted Level ${level} access to ${user?.name}` });
 });
@@ -512,14 +509,8 @@ router.post('/waive-payment', requireAdmin, (req, res) => {
   } else {
     // No existing payment — insert a waived record
     dbRun(`INSERT INTO payments (user_id, amount_cents, description, status) VALUES (?, 0, ?, 'waived')`, [userId, levelDescMap[level] || 'Waived']);
-    if (level === 1) {
-      dbRun(`INSERT INTO payments (user_id, amount_cents, description, status) VALUES (?, 0, ?, 'waived')`, [userId, levelDescMap[0]]);
-    }
   }
   dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, ?)`, [userId, level, req.user.id]);
-  if (level === 1) {
-    dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, ?)`, [userId, req.user.id]);
-  }
   const user = dbGet('SELECT name FROM users WHERE id = ?', [userId]);
   res.json({ ok: true, message: `Payment waived for ${user?.name}` });
 });
