@@ -126,23 +126,20 @@ router.get('/status', (req, res) => {
 
   const hasCert0 = !!dbGet('SELECT id FROM certifications WHERE user_id = ? AND level = 0', [userId]);
   const hasCert1 = !!dbGet('SELECT id FROM certifications WHERE user_id = ? AND level = 1', [userId]);
-  const hasCert2 = !!dbGet('SELECT id FROM certifications WHERE user_id = ? AND level = 2', [userId]);
 
   const access0 = isAdmin || hasPaidFor(userId, 0) || hasCert0;
   const access1 = isAdmin || hasPaidFor(userId, 1) || hasCert1;
-  const access2 = isAdmin || hasPaidFor(userId, 2) || hasCert2;
 
   const level3app = dbGet(`SELECT status FROM level3_applications WHERE user_id = ?`, [userId]);
   const level3cert = !!dbGet(`SELECT id FROM certifications WHERE user_id = ? AND level = 3`, [userId]);
 
   const prog0 = getProgress(userId, 0);
   const prog1 = getProgress(userId, 1);
-  const prog2 = getProgress(userId, 2);
 
   res.json({
     is_admin: isAdmin,
-    access: { level0: access0, level1: access1, level2: access2 },
-    progress: { level0: prog0, level1: prog1, level2: prog2 },
+    access: { level0: access0, level1: access1 },
+    progress: { level0: prog0, level1: prog1 },
     level3: {
       application_status: level3app?.status || null,
       certified: level3cert,
@@ -154,9 +151,10 @@ router.get('/status', (req, res) => {
 // ── POST /api/course/video-complete ──────────────────────────────────────────
 router.post('/video-complete', (req, res) => {
   const { level, videoIndex } = req.body;
+  if (![0, 1].includes(level)) return res.status(400).json({ error: 'Invalid level.' });
   const maxIndex = (VIDEO_COUNTS[level] || 4) - 1;
-  if (typeof level !== 'number' || typeof videoIndex !== 'number' || videoIndex < 0 || videoIndex > maxIndex) {
-    return res.status(400).json({ error: 'Invalid level or videoIndex.' });
+  if (typeof videoIndex !== 'number' || videoIndex < 0 || videoIndex > maxIndex) {
+    return res.status(400).json({ error: 'Invalid videoIndex.' });
   }
   const userId = req.user.id;
   const user = dbGet('SELECT is_admin FROM users WHERE id = ?', [userId]);
@@ -206,7 +204,7 @@ router.post('/apply-level3', (req, res) => {
 // Returns questions WITHOUT correct answers
 router.get('/exam-questions', (req, res) => {
   const level = parseInt(req.query.level);
-  if (![0, 1, 2].includes(level)) return res.status(400).json({ error: 'Invalid level.' });
+  if (![0, 1].includes(level)) return res.status(400).json({ error: 'Invalid level.' });
 
   const userId = req.user.id;
   const user = dbGet('SELECT is_admin FROM users WHERE id = ?', [userId]);
@@ -228,7 +226,7 @@ router.get('/exam-questions', (req, res) => {
 // answers: array of selected option indices (0-3), one per question in order
 router.post('/submit-exam', (req, res) => {
   const { level, answers } = req.body;
-  if (![0, 1, 2].includes(level) || !Array.isArray(answers)) {
+  if (![0, 1].includes(level) || !Array.isArray(answers)) {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 

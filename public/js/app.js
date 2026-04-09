@@ -452,13 +452,12 @@ function updateCertCard(courseStatus) {
   const prog = courseStatus.progress || {};
   let highest = -1;
   if (courseStatus.level3?.certified) highest = 3;
-  else if (prog.level2?.certified) highest = 2;
   else if (prog.level1?.certified) highest = 1;
   else if (prog.level0?.certified) highest = 0;
 
   const totalStroke = 226;
   if (highest >= 0) {
-    const names = ['Level 0 – Beginner', 'Level 1 – Local', 'Level 2 – State', 'Level 3 – National'];
+    const names = ['Level 0 – Entry', 'Level 1 – Foundational', '', 'Level 3 – Elite'];
     statusEl.textContent = names[highest] + ' Judge';
     statusEl.style.color = 'var(--clr-success)';
     levelEl.textContent = `L${highest}`;
@@ -471,7 +470,6 @@ function updateCertCard(courseStatus) {
     const certifiedLevels = [];
     if (prog.level0?.certified) certifiedLevels.push(0);
     if (prog.level1?.certified) certifiedLevels.push(1);
-    if (prog.level2?.certified) certifiedLevels.push(2);
     if (courseStatus.level3?.certified) certifiedLevels.push(3);
 
     detailEl.innerHTML = 'Your certification is active.<br><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;">'
@@ -1956,14 +1954,13 @@ async function openUserDetail(user) {
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
       <button class="btn-grant" data-detail-grant data-uid="${user.id}" data-level="0">Level 0 ✓</button>
       <button class="btn-grant" data-detail-grant data-uid="${user.id}" data-level="1">Level 1 ✓</button>
-      <button class="btn-grant" data-detail-grant data-uid="${user.id}" data-level="2">Level 2 ✓</button>
       <button class="btn-grant" style="background:#7a5a00;" data-detail-grant-l3 data-uid="${user.id}">Level 3 ⭐</button>
     </div>
 
     <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .5rem;">Course Access</h4>
     <p style="font-size:.82rem;color:var(--clr-muted);margin-bottom:.75rem;">Grant access to course videos without requiring payment.</p>
     <div id="course-access-rows" style="display:flex;flex-direction:column;gap:.5rem;">
-      ${[0,1,2].map(lvl => {
+      ${[0,1].map(lvl => {
         const hasAccess = (user.courseAccess || []).includes(lvl);
         const hasPaid = (user.payments || []).some(p => p.status === 'paid' && p.description.includes(`Level ${lvl}`));
         const hasCert = (user.certifications || []).some(c => c.level === lvl);
@@ -2124,7 +2121,7 @@ async function loadCourse() {
   }
 
   const { access, progress, level3, can_apply_level3, is_admin } = courseStatus;
-  const hasAny = access.level0 || access.level1 || access.level2;
+  const hasAny = access.level0 || access.level1;
 
   if (!hasAny) {
     container.innerHTML = `
@@ -2141,7 +2138,6 @@ async function loadCourse() {
   const tabs = [];
   if (access.level0) tabs.push({ level: 0, label: 'Level 0 Certification', prog: progress.level0 });
   if (access.level1) tabs.push({ level: 1, label: 'Level 1 Certification', prog: progress.level1 });
-  if (access.level2) tabs.push({ level: 2, label: 'Level 2 Certification', prog: progress.level2 });
 
   let html = `<div class="course-tabs" id="course-tabs">`;
   tabs.forEach((t, i) => {
@@ -2186,7 +2182,7 @@ async function loadCourse() {
     document.querySelectorAll('.course-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     const level = parseInt(btn.dataset.level);
-    const prog = level === 0 ? progress.level0 : level === 1 ? progress.level1 : progress.level2;
+    const prog = level === 0 ? progress.level0 : progress.level1;
     renderCourseLevel(level, prog, is_admin);
   });
 
@@ -2483,8 +2479,7 @@ function downloadCertificate(level) {
         if (courseStatus) {
           courseStatus = await apiFetch('/api/course/status');
           const prog = currentLevel === 0 ? courseStatus.progress.level0
-                     : currentLevel === 1 ? courseStatus.progress.level1
-                     : courseStatus.progress.level2;
+                     : courseStatus.progress.level1;
           renderCourseLevel(currentLevel, prog, courseStatus.is_admin);
         }
       } catch (e) { /* silent */ }
