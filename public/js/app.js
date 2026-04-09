@@ -1049,21 +1049,6 @@ document.addEventListener('click', async (e) => {
     } catch (err) { showToast(err.message || 'Error', 'error'); addBtn.disabled = false; }
     return;
   }
-
-  const delBtn = e.target.closest('[data-delete-payment]');
-  if (delBtn && !delBtn.disabled) {
-    if (!confirm('Delete this payment record? This cannot be undone.')) return;
-    const pid = parseInt(delBtn.dataset.deletePayment);
-    const uid2 = parseInt(delBtn.dataset.uid);
-    delBtn.disabled = true;
-    try {
-      await apiFetch(`/api/admin/delete-payment/${pid}`, { method: 'DELETE' });
-      showToast('Payment record deleted.', 'success');
-      const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
-      openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments, certifications: fresh.certifications });
-    } catch (err) { showToast(err.message || 'Error', 'error'); delBtn.disabled = false; }
-    return;
-  }
 });
 
 // ===================== PASSWORD RESET =====================
@@ -1873,10 +1858,10 @@ function renderPaymentSection(user) {
   }
   const rows = payments.map(p => {
     const lvl = p.description && p.description.includes('Level 1') ? 1 : 0;
-    const actionBtns = (p.status === 'pending'
+    const actionBtns = p.status === 'pending'
       ? `<button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;" data-mark-paid="${uid}" data-pid="${p.id}" data-level="${lvl}">Mark Paid</button>
          <button class="btn-grant" style="font-size:.75rem;padding:.25rem .6rem;background:#1e3a5f;" data-waive-payment="${uid}" data-pid="${p.id}" data-level="${lvl}">Waive</button>`
-      : '') + `<button class="btn-revoke" style="font-size:.72rem;padding:.2rem .55rem;" data-delete-payment="${p.id}" data-uid="${uid}" title="Delete this payment record">✕</button>`;
+      : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
       <div>
         <span style="font-size:.88rem;font-weight:600;">${p.description || '—'}</span>
