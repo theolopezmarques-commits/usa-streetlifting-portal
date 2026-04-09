@@ -537,4 +537,13 @@ router.get('/course-progress', requireAdmin, (req, res) => {
   res.json({ users: result });
 });
 
+// DELETE /api/admin/delete-payment/:id
+router.delete('/delete-payment/:id', requireAdmin, (req, res) => {
+  const paymentId = parseInt(req.params.id);
+  const row = dbGet('SELECT id FROM payments WHERE id = ?', [paymentId]);
+  if (!row) return res.status(404).json({ error: 'Payment not found.' });
+  dbRun('DELETE FROM payments WHERE id = ?', [paymentId]);
+  res.json({ ok: true });
+});
+
 module.exports = router;

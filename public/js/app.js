@@ -1049,6 +1049,21 @@ document.addEventListener('click', async (e) => {
     } catch (err) { showToast(err.message || 'Error', 'error'); addBtn.disabled = false; }
     return;
   }
+
+  const delPayBtn = e.target.closest('[data-delete-payment]');
+  if (delPayBtn && !delPayBtn.disabled) {
+    if (!confirm('Delete this payment record? This cannot be undone.')) return;
+    const pid = parseInt(delPayBtn.dataset.deletePayment);
+    const uid2 = parseInt(delPayBtn.dataset.uid);
+    delPayBtn.disabled = true;
+    try {
+      await apiFetch(`/api/admin/delete-payment/${pid}`, { method: 'DELETE' });
+      showToast('Payment record deleted.', 'success');
+      const fresh = await apiFetch(`/api/admin/user-detail/${uid2}`);
+      openUserDetail({ ...(currentDetailUser || {}), id: uid2, courseAccess: fresh.courseAccess, payments: fresh.payments, certifications: fresh.certifications });
+    } catch (err) { showToast(err.message || 'Error', 'error'); delPayBtn.disabled = false; }
+    return;
+  }
 });
 
 // ===================== PASSWORD RESET =====================
@@ -1870,6 +1885,7 @@ function renderPaymentSection(user) {
       <div style="display:flex;align-items:center;gap:.5rem;">
         <span style="font-size:.78rem;color:${p.status==='paid'?'#4cd964':p.status==='waived'?'#60a5fa':'#f5a623'};font-weight:700;">${(p.status||'').toUpperCase()}</span>
         ${actionBtns}
+        <button class="btn-revoke" style="font-size:.72rem;padding:.2rem .55rem;" data-delete-payment="${p.id}" data-uid="${uid}">✕</button>
       </div>
     </div>`;
   }).join('');
