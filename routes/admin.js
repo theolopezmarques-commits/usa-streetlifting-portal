@@ -124,7 +124,7 @@ router.post('/review-level3', requireAdmin, (req, res) => {
 // GET /api/admin/user-detail/:id — full progress for one user
 router.get('/user-detail/:id', requireAdmin, (req, res) => {
   const userId = req.params.id;
-  const user = dbGet('SELECT id, name, email, state FROM users WHERE id = ?', [userId]);
+  const user = dbGet('SELECT id, name, email, state, phone, experience, position, instagram, show_in_directory, comps_judged FROM users WHERE id = ?', [userId]);
   if (!user) return res.status(404).json({ error: 'User not found.' });
 
   const payments = dbAll(
@@ -173,11 +173,32 @@ router.post('/revoke-course-access', requireAdmin, (req, res) => {
 
 // POST /api/admin/update-judge — update judge profile fields
 router.post('/update-judge', requireAdmin, (req, res) => {
-  const { userId, position, instagram, comps_judged, show_in_directory } = req.body;
+  const { userId, name, state, phone, experience, position, instagram, comps_judged, show_in_directory } = req.body;
   if (!userId) return res.status(400).json({ error: 'userId required.' });
+  if (name !== undefined && (!name || name.trim().length < 2))
+    return res.status(400).json({ error: 'Name must be at least 2 characters.' });
   dbRun(
-    `UPDATE users SET position = ?, instagram = ?, comps_judged = ?, show_in_directory = ? WHERE id = ?`,
-    [position || null, instagram || null, parseInt(comps_judged) || 0, show_in_directory ? 1 : 0, userId]
+    `UPDATE users SET
+      name = COALESCE(NULLIF(?, ''), name),
+      state = ?,
+      phone = ?,
+      experience = ?,
+      position = ?,
+      instagram = ?,
+      comps_judged = ?,
+      show_in_directory = ?
+     WHERE id = ?`,
+    [
+      name ? name.trim() : '',
+      state || null,
+      phone || null,
+      experience || null,
+      position || null,
+      instagram || null,
+      parseInt(comps_judged) || 0,
+      show_in_directory ? 1 : 0,
+      userId,
+    ]
   );
   res.json({ success: true });
 });

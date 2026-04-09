@@ -1903,7 +1903,7 @@ async function openUserDetail(user) {
   // Always fetch fresh course access + payments
   try {
     const detail = await apiFetch(`/api/admin/user-detail/${user.id}`);
-    user = { ...user, courseAccess: detail.courseAccess, payments: detail.payments || [], certifications: detail.certifications || [] };
+    user = { ...user, ...detail.user, courseAccess: detail.courseAccess, payments: detail.payments || [], certifications: detail.certifications || [] };
   } catch { user = { ...user, courseAccess: [], payments: [], certifications: [] }; }
   currentDetailUser = user;
 
@@ -1985,16 +1985,34 @@ async function openUserDetail(user) {
       ${renderPaymentSection(user)}
     </div>
 
-    <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Directory Profile</h4>
+    <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Profile</h4>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+      <label style="font-size:.82rem;color:var(--clr-muted);">Full Name
+        <input id="ud-name" type="text" value="${escapeHtml(user.name || '')}" placeholder="Full name" style="${inputStyle}">
+      </label>
+      <label style="font-size:.82rem;color:var(--clr-muted);">Email
+        <input type="text" value="${escapeHtml(user.email || '')}" disabled style="${inputStyle};opacity:.5;cursor:not-allowed;">
+      </label>
+      <label style="font-size:.82rem;color:var(--clr-muted);">Phone
+        <input id="ud-phone" type="text" value="${escapeHtml(user.phone || '')}" placeholder="e.g. 555-123-4567" style="${inputStyle}">
+      </label>
+      <label style="font-size:.82rem;color:var(--clr-muted);">State
+        <select id="ud-state" style="${inputStyle}">
+          <option value="">— Select state —</option>
+          ${['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'].map(s => `<option value="${s}" ${user.state === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </label>
+      <label style="font-size:.82rem;color:var(--clr-muted);">Experience Level
+        <select id="ud-experience" style="${inputStyle}">
+          <option value="">— Select —</option>
+          ${['Beginner','Intermediate','Advanced','Expert'].map(x => `<option value="${x}" ${user.experience === x ? 'selected' : ''}>${x}</option>`).join('')}
+        </select>
+      </label>
       <label style="font-size:.82rem;color:var(--clr-muted);">Position
         <input id="ud-position" type="text" value="${escapeHtml(user.position || '')}" placeholder="e.g. State Judge" style="${inputStyle}">
       </label>
       <label style="font-size:.82rem;color:var(--clr-muted);">Instagram (@handle)
         <input id="ud-instagram" type="text" value="${escapeHtml(user.instagram || '')}" placeholder="@username" style="${inputStyle}">
-      </label>
-      <label style="font-size:.82rem;color:var(--clr-muted);">Comps Judged
-        <input id="ud-comps" type="number" value="${user.comps_judged || 0}" min="0" style="${inputStyle}">
       </label>
       <label style="font-size:.82rem;color:var(--clr-muted);display:flex;flex-direction:column;gap:.4rem;">Show in Directory
         <select id="ud-show" style="${inputStyle}">
@@ -2065,19 +2083,25 @@ async function openUserDetail(user) {
   });
 
   document.getElementById('ud-save-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('ud-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
     try {
       await apiFetch('/api/admin/update-judge', {
         method: 'POST',
         body: JSON.stringify({
           userId: user.id,
+          name: document.getElementById('ud-name')?.value.trim(),
+          phone: document.getElementById('ud-phone')?.value.trim(),
+          state: document.getElementById('ud-state')?.value,
+          experience: document.getElementById('ud-experience')?.value,
           position: document.getElementById('ud-position')?.value.trim(),
           instagram: document.getElementById('ud-instagram')?.value.trim(),
-          comps_judged: document.getElementById('ud-comps')?.value,
           show_in_directory: document.getElementById('ud-show')?.value === '1',
         }),
       });
       showToast('Profile saved.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
+    finally { btn.disabled = false; btn.textContent = 'Save Profile'; }
   });
 
   overlay.classList.add('open');
