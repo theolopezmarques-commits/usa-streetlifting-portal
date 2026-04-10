@@ -92,4 +92,23 @@ function welcomeEmail(name) {
   </div>`;
 }
 
-module.exports = { sendEmail, verificationEmail, certExpiryEmail, announcementEmail, eventConfirmEmail, welcomeEmail };
+function certificationEmail(name, level) {
+  const levelNames = { 0: 'Level 0 – Entry Judge', 1: 'Level 1 – Foundational Judge', 3: 'Level 3 – Elite Judge' };
+  const levelName = levelNames[level] || `Level ${level}`;
+  return `
+  <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#0a0a0a;padding:32px;border-radius:8px;color:#f0f0f0;">
+    <img src="https://usastreetlifting.org/wp-content/uploads/2024/08/cropped-USA-Streetlifting-Transparent-File-PNG-1.png" alt="USA Streetlifting" style="height:48px;margin-bottom:24px;">
+    <h2 style="color:#c0392b;margin-bottom:8px;">Congratulations, ${name}!</h2>
+    <p style="font-size:1rem;line-height:1.6;">You have officially earned your <strong style="color:#fff;">${levelName} Certification</strong> with USA Streetlifting.</p>
+    <p style="line-height:1.6;">This certification reflects your commitment to fair, consistent, and professional judging. We're proud to have you as part of our judging team.</p>
+    <div style="margin:24px 0;padding:16px 20px;background:#1a1a1a;border-left:3px solid #c0392b;border-radius:4px;">
+      <strong style="color:#c0392b;">⬇ Download Your Certificate</strong>
+      <p style="margin:.5em 0 0;color:#aaa;font-size:.9rem;">Log into your judge portal and head to your dashboard to download your official certificate at any time.</p>
+    </div>
+    <a href="${process.env.BASE_URL}" style="display:inline-block;padding:12px 28px;background:#c0392b;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">Go to My Dashboard</a>
+    <p style="color:#888;font-size:.85rem;margin-top:28px;">We look forward to seeing you on the platform.</p>
+    <p style="color:#aaa;font-size:.9rem;margin-top:4px;">– Théo Lopez Marques<br>Director of Judging — USA Streetlifting</p>
+  </div>`;
+}
+
+module.exports = { sendEmail, verificationEmail, certExpiryEmail, announcementEmail, eventConfirmEmail, welcomeEmail, certificationEmail };

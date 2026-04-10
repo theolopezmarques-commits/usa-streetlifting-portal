@@ -1,6 +1,6 @@
 const express = require('express');
 const { dbGet, dbAll, dbRun } = require('../db');
-const { sendEmail, announcementEmail } = require('../email');
+const { sendEmail, announcementEmail, certificationEmail } = require('../email');
 
 const router = express.Router();
 
@@ -49,16 +49,24 @@ router.get('/users', requireAdmin, (req, res) => {
 });
 
 // POST /api/admin/grant-certification — mark oral exam passed for a user (level 0 or 1)
-router.post('/grant-certification', requireAdmin, (req, res) => {
+router.post('/grant-certification', requireAdmin, async (req, res) => {
   const { userId, level } = req.body;
-  if (!userId || ![0, 1, 2].includes(level)) {
-    return res.status(400).json({ error: 'userId and level (0, 1, or 2) required.' });
+  if (!userId || ![0, 1].includes(level)) {
+    return res.status(400).json({ error: 'userId and level (0 or 1) required.' });
   }
   try {
     dbRun(
       `INSERT OR REPLACE INTO certifications (user_id, level, granted_by) VALUES (?, ?, ?)`,
       [userId, level, req.user.id]
     );
+    const user = dbGet('SELECT name, email FROM users WHERE id = ?', [userId]);
+    if (user?.email) {
+      sendEmail({
+        to: user.email,
+        subject: `Congratulations on your Level ${level} Certification — USA Streetlifting`,
+        html: certificationEmail(user.name, level),
+      }).catch(() => {});
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Could not grant certification.' });
@@ -76,7 +84,7 @@ router.post('/revoke-certification', requireAdmin, (req, res) => {
 });
 
 // POST /api/admin/grant-level3 — directly grant Level 3 without application
-router.post('/grant-level3', requireAdmin, (req, res) => {
+router.post('/grant-level3', requireAdmin, async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.status(400).json({ error: 'userId required.' });
   try {
@@ -84,6 +92,14 @@ router.post('/grant-level3', requireAdmin, (req, res) => {
       `INSERT OR REPLACE INTO certifications (user_id, level, granted_by) VALUES (?, 3, ?)`,
       [userId, req.user.id]
     );
+    const user = dbGet('SELECT name, email FROM users WHERE id = ?', [userId]);
+    if (user?.email) {
+      sendEmail({
+        to: user.email,
+        subject: 'Congratulations on your Level 3 Certification — USA Streetlifting',
+        html: certificationEmail(user.name, 3),
+      }).catch(() => {});
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Could not grant Level 3.' });
