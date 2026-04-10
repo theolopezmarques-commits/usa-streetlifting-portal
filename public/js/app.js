@@ -2841,13 +2841,13 @@ async function loadCompHistory() {
     let html = '<div style="display:flex;flex-direction:column;gap:.4rem;">';
     for (const c of history) {
       html += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;flex-wrap:wrap;gap:.4rem;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;flex-wrap:wrap;gap:.4rem;">
           <div>
             <strong style="font-size:.9rem;">${escapeHtml(c.comp_name)}</strong>
             <span style="color:var(--clr-muted);font-size:.8rem;margin-left:.5rem;">${escapeHtml(c.comp_date)}${c.location ? ' · ' + escapeHtml(c.location) : ''}</span>
-            ${c.role ? `<span style="font-size:.78rem;color:var(--clr-primary);margin-left:.4rem;">${escapeHtml(c.role)}</span>` : ''}
+            ${formatRoleHtml(c.role)}
           </div>
-          <button class="btn-revoke" style="font-size:.75rem;padding:.25rem .6rem;" data-ch-delete="${c.id}">Remove</button>
+          <button class="btn-revoke" style="font-size:.75rem;padding:.25rem .6rem;flex-shrink:0;" data-ch-delete="${c.id}">Remove</button>
         </div>`;
     }
     html += '</div>';
@@ -2877,10 +2877,44 @@ const USA_SL_COMPS = [
   { name: 'San Antonio Classic',                           date: '2026-03-14', location: 'San Antonio, TX' },
 ];
 
+const CH_MOVEMENTS_CLASSIC = ['Pulls', 'Dips'];
+const CH_MOVEMENTS_ALL4    = ['Pulls', 'Dips', 'Muscle-ups', 'Squats'];
+const CH_JUDGE_OPTIONS     = ['—', 'A', 'B', 'C'];
+
+function isAll4Comp(name) {
+  return /all.?4/i.test(name);
+}
+
+function renderMovementSelectors(compName) {
+  const movs = isAll4Comp(compName) ? CH_MOVEMENTS_ALL4 : CH_MOVEMENTS_CLASSIC;
+  const container = document.getElementById('ch-movements');
+  if (!container) return;
+  container.innerHTML = movs.map(m => `
+    <div style="display:flex;align-items:center;gap:.35rem;">
+      <label style="font-size:.8rem;color:var(--clr-muted);min-width:75px;">${m}</label>
+      <select id="ch-mov-${m.replace(/[^a-z]/gi,'')}" style="padding:.3rem .5rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#1a1a1a;color:#fff;font-size:.82rem;">
+        <option value="">—</option>
+        <option value="A">Judge A</option>
+        <option value="B">Judge B</option>
+        <option value="C">Judge C</option>
+      </select>
+    </div>`).join('');
+}
+
+function getMovementData(compName) {
+  const movs = isAll4Comp(compName) ? CH_MOVEMENTS_ALL4 : CH_MOVEMENTS_CLASSIC;
+  const result = {};
+  movs.forEach(m => {
+    const val = document.getElementById(`ch-mov-${m.replace(/[^a-z]/gi,'')}`)?.value;
+    if (val) result[m] = val;
+  });
+  return result;
+}
+
 function initCompHistory() {
   if (_compHistoryInited) return;
   _compHistoryInited = true;
-  // Populate dropdown
+
   const sel = document.getElementById('ch-name');
   if (sel) {
     USA_SL_COMPS.forEach(c => {
@@ -2889,15 +2923,19 @@ function initCompHistory() {
       opt.textContent = `${c.name} (${c.date})`;
       sel.appendChild(opt);
     });
-    // Auto-fill date & location when a comp is selected
+
     sel.addEventListener('change', () => {
       const comp = USA_SL_COMPS.find(c => c.name === sel.value);
+      const posDiv = document.getElementById('ch-positions');
       if (comp) {
         document.getElementById('ch-date').value = comp.date;
         document.getElementById('ch-location').value = comp.location;
+        if (posDiv) posDiv.style.display = 'flex';
+        renderMovementSelectors(comp.name);
       } else {
         document.getElementById('ch-date').value = '';
         document.getElementById('ch-location').value = '';
+        if (posDiv) posDiv.style.display = 'none';
       }
     });
   }
@@ -2906,18 +2944,42 @@ function initCompHistory() {
     const name     = document.getElementById('ch-name')?.value.trim();
     const date     = document.getElementById('ch-date')?.value;
     const location = document.getElementById('ch-location')?.value.trim();
-    const role     = document.getElementById('ch-role')?.value.trim();
+    const judgePos = document.getElementById('ch-judge-pos')?.value;
     if (!name || !date) { showToast('Select a competition first.', 'error'); return; }
+
+    const movements = getMovementData(name);
+    const roleData = { position: judgePos || null, movements };
+    const role = JSON.stringify(roleData);
+
     try {
       await apiFetch('/api/comp-history', { method: 'POST', body: JSON.stringify({ comp_name: name, comp_date: date, location, role }) });
       document.getElementById('ch-name').value = '';
       document.getElementById('ch-date').value = '';
       document.getElementById('ch-location').value = '';
-      document.getElementById('ch-role').value = '';
+      document.getElementById('ch-judge-pos').value = '';
+      const posDiv = document.getElementById('ch-positions');
+      if (posDiv) posDiv.style.display = 'none';
       showToast('Competition logged!', 'success');
       loadCompHistory();
     } catch (err) { showToast(err.message, 'error'); }
   });
+}
+
+function parseRole(role) {
+  if (!role) return null;
+  try { return JSON.parse(role); } catch { return { position: role, movements: {} }; }
+}
+
+function formatRoleHtml(role) {
+  const parsed = parseRole(role);
+  if (!parsed) return '';
+  const parts = [];
+  if (parsed.position) parts.push(`<span style="color:var(--clr-primary);font-weight:700;">Judge ${parsed.position}${parsed.position === 'A' ? ' (Head)' : ''}</span>`);
+  if (parsed.movements && Object.keys(parsed.movements).length) {
+    const movParts = Object.entries(parsed.movements).map(([m, p]) => `${m}: <strong>${p}</strong>`);
+    parts.push(`<span style="color:var(--clr-muted);font-size:.76rem;">${movParts.join(' · ')}</span>`);
+  }
+  return parts.length ? `<div style="margin-top:.2rem;">${parts.join(' &nbsp;·&nbsp; ')}</div>` : '';
 }
 
 // ===================== JUDGE PROFILE =====================
@@ -3004,7 +3066,8 @@ function renderJudgeModal(container, user, certs, history) {
                 <div style="width:32px;height:32px;border-radius:8px;background:rgba(200,16,46,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--clr-primary);flex-shrink:0;">${i+1}</div>
                 <div>
                   <div style="font-weight:600;font-size:.92rem;">${escapeHtml(h.comp_name)}</div>
-                  <div style="font-size:.78rem;color:var(--clr-muted);">${h.location ? escapeHtml(h.location) + ' · ' : ''}${h.role ? `<span style="color:var(--clr-primary);">${escapeHtml(h.role)}</span>` : ''}</div>
+                  <div style="font-size:.78rem;color:var(--clr-muted);">${h.location ? escapeHtml(h.location) : ''}</div>
+                  ${formatRoleHtml(h.role)}
                 </div>
               </div>
               <span style="font-size:.8rem;color:var(--clr-muted);background:rgba(255,255,255,.05);padding:2px 10px;border-radius:20px;">${escapeHtml(h.comp_date)}</span>

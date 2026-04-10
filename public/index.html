@@ -401,14 +401,29 @@
         <div class="dash-section fade-up" style="margin-top:2rem;">
           <h3>Competition History</h3>
           <p class="muted" style="font-size:.88rem;margin-bottom:1rem;">Log the competitions you have judged.</p>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-            <select id="ch-name" style="flex:2;min-width:200px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#1a1a1a;color:#fff;font-size:.88rem;">
-              <option value="">— Select competition —</option>
-            </select>
-            <input id="ch-date" type="date" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
-            <input id="ch-location" type="text" placeholder="City, State" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
-            <input id="ch-role" type="text" placeholder="Role (Judge, Head Judge…)" style="flex:2;min-width:140px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
-            <button id="ch-add-btn" class="btn btn-primary" style="padding:.45rem 1rem;">Add</button>
+          <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;">
+            <!-- Row 1: comp + date + location -->
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+              <select id="ch-name" style="flex:3;min-width:200px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#1a1a1a;color:#fff;font-size:.88rem;">
+                <option value="">— Select competition —</option>
+              </select>
+              <input id="ch-date" type="date" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+              <input id="ch-location" type="text" placeholder="City, State" style="flex:1;min-width:120px;padding:.45rem .7rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.88rem;">
+            </div>
+            <!-- Row 2: judge position fields (shown after comp selected) -->
+            <div id="ch-positions" style="display:none;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;">
+              <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                <label style="font-size:.82rem;color:var(--clr-muted);white-space:nowrap;">Overall Position</label>
+                <select id="ch-judge-pos" style="padding:.35rem .6rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#1a1a1a;color:#fff;font-size:.85rem;">
+                  <option value="">— Select —</option>
+                  <option value="A">Judge A (Head Judge)</option>
+                  <option value="B">Judge B</option>
+                  <option value="C">Judge C</option>
+                </select>
+              </div>
+              <div id="ch-movements" style="display:flex;flex-wrap:wrap;gap:.5rem;"></div>
+            </div>
+            <button id="ch-add-btn" class="btn btn-primary" style="padding:.45rem 1rem;align-self:flex-start;">Add</button>
           </div>
           <div id="comp-history-list"></div>
         </div>
@@ -969,7 +984,7 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=25"></script>
+  <script src="/js/app.js?v=26"></script>
   <!-- Capacitor: only present in native app builds -->
   <script>
     if (window.Capacitor) {
