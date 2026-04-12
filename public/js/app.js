@@ -2767,17 +2767,10 @@ async function loadEvents() {
   }
 }
 
-function renderEvents(events, myIds) {
-  const container = document.getElementById('events-content');
-  if (!events.length) {
-    container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">No upcoming events scheduled.</p>';
-    return;
-  }
-  let html = '';
-  for (const ev of events) {
+function renderEventCard(ev, myIds, isPast) {
     const registered = myIds.has(ev.id);
-    html += `
-      <div class="course-section-card" style="margin-bottom:1.25rem;" data-event-id="${ev.id}">
+    return `
+      <div class="course-section-card" style="margin-bottom:1.25rem;${isPast ? 'opacity:.7;' : ''}" data-event-id="${ev.id}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
           <div>
             <h3 style="font-family:var(--font-heading);font-size:1.2rem;margin-bottom:.35rem;">${escapeHtml(ev.name)}</h3>
@@ -2786,7 +2779,7 @@ function renderEvents(events, myIds) {
             <p style="font-size:.8rem;color:var(--clr-muted);margin-top:.4rem;">${ev.judge_count} judge${ev.judge_count !== 1 ? 's' : ''} registered</p>
           </div>
           <div>
-            ${currentUser
+            ${isPast ? '' : currentUser
               ? registered
                 ? `<button class="btn btn-outline event-unreg-btn" data-id="${ev.id}" style="font-size:.85rem;padding:.5rem 1rem;">✓ Registered — Cancel</button>`
                 : `<button class="btn btn-primary event-reg-btn" data-id="${ev.id}" style="font-size:.85rem;padding:.5rem 1rem;">Register to Judge</button>`
@@ -2796,7 +2789,7 @@ function renderEvents(events, myIds) {
         </div>
         ${ev._judges && ev._judges.length ? `
         <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid rgba(255,255,255,.07);">
-          <p style="font-size:.78rem;font-weight:700;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Registered Judges</p>
+          <p style="font-size:.78rem;font-weight:700;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">${isPast ? 'Judges Who Participated' : 'Registered Judges'}</p>
           <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
             ${ev._judges.map(j => {
               const initials = j.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
@@ -2811,8 +2804,40 @@ function renderEvents(events, myIds) {
           </div>
         </div>` : ''}
       </div>`;
+}
+
+function renderEvents(events, myIds) {
+  const container = document.getElementById('events-content');
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = events.filter(e => e.event_date >= today);
+  const past     = events.filter(e => e.event_date < today).sort((a, b) => b.event_date.localeCompare(a.event_date));
+
+  if (!upcoming.length && !past.length) {
+    container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">No events scheduled.</p>';
+    return;
   }
+
+  let html = '';
+
+  if (upcoming.length) {
+    html += upcoming.map(ev => renderEventCard(ev, myIds, false)).join('');
+  } else {
+    html += '<p style="color:var(--clr-muted);margin-bottom:2rem;">No upcoming events scheduled.</p>';
+  }
+
+  if (past.length) {
+    html += `
+      <div style="margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.08);">
+        <h3 style="font-family:var(--font-heading);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:var(--clr-muted);margin-bottom:1.25rem;">Past Events</h3>
+        ${past.map(ev => renderEventCard(ev, myIds, true)).join('')}
+      </div>`;
+  }
+
   container.innerHTML = html;
+
+  // keep the old loop below just for binding, no card rendering needed
+  for (const ev of events) {
+  }
 
   container.querySelectorAll('.event-reg-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
