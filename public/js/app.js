@@ -2876,6 +2876,21 @@ async function loadCompHistory() {
 let _compHistoryInited = false;
 let _pastEvents = []; // populated from API on init
 
+// Known past USASL events — always available regardless of Events DB
+const USASL_PAST_EVENTS = [
+  { name: 'Classic Reckoning | USA Streetlifting Maryland', event_date: '2025-02-09', location: 'Columbia, MD' },
+  { name: '2025 USA Streetlifting National Championships',  event_date: '2025-04-26', location: 'Columbia, MD' },
+  { name: 'Lone Star Classic 2025',                        event_date: '2025-07-19', location: 'Fort Worth, TX' },
+  { name: '2025 Empire State Classic',                     event_date: '2025-08-10', location: 'New York, NY' },
+  { name: 'Sun City Showdown',                             event_date: '2025-08-23', location: 'El Paso, TX' },
+  { name: '2025 Mile High Classic',                        event_date: '2025-09-20', location: 'Arvada, CO' },
+  { name: '2025 Lone Star All4 Championship',              event_date: '2025-10-18', location: 'Fort Worth, TX' },
+  { name: '2025 Virginia State Classic',                   event_date: '2025-11-15', location: 'Ashland, VA' },
+  { name: '2025 Classic National Championships',           event_date: '2025-11-22', location: 'Warrington, PA' },
+  { name: 'San Antonio Classic',                           event_date: '2026-03-14', location: 'San Antonio, TX' },
+  { name: 'Dallas Classic',                                event_date: '2026-04-11', location: 'Dallas, TX' },
+];
+
 const CH_MOVEMENTS_CLASSIC = ['Pulls', 'Dips'];
 const CH_MOVEMENTS_ALL4    = ['Pulls', 'Dips', 'Muscle-ups', 'Squats'];
 const CH_JUDGE_OPTIONS     = ['—', 'A', 'B', 'C'];
@@ -2917,14 +2932,21 @@ async function initCompHistory() {
   const sel = document.getElementById('ch-name');
   if (!sel) return;
 
-  // Load past events from API (events whose date <= today)
+  // Load past events from API + merge with hardcoded seed list, deduplicated by name
+  const today = new Date().toISOString().slice(0, 10);
+  let dbEvents = [];
   try {
-    const today = new Date().toISOString().slice(0, 10);
     const { events } = await fetch(_API + '/api/events', { credentials: 'include' }).then(r => r.json());
-    _pastEvents = (events || [])
-      .filter(e => e.event_date <= today)
-      .sort((a, b) => b.event_date.localeCompare(a.event_date));
-  } catch { _pastEvents = []; }
+    dbEvents = (events || []).filter(e => e.event_date <= today);
+  } catch { dbEvents = []; }
+
+  // Merge: start with seed list, add DB events not already in seed list
+  const seedNames = new Set(USASL_PAST_EVENTS.map(e => e.name.toLowerCase().trim()));
+  const merged = [
+    ...USASL_PAST_EVENTS,
+    ...dbEvents.filter(e => !seedNames.has(e.name.toLowerCase().trim())),
+  ].sort((a, b) => b.event_date.localeCompare(a.event_date));
+  _pastEvents = merged;
 
   _pastEvents.forEach(e => {
     const opt = document.createElement('option');
