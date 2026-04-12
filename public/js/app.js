@@ -2656,10 +2656,20 @@ function renderDirectory(judges) {
     if (!byState[state]) byState[state] = [];
     byState[state].push(j);
   }
+  // Sort judges within each state by comps_judged descending
+  for (const list of Object.values(byState)) {
+    list.sort((a, b) => (b.comps_judged || 0) - (a.comps_judged || 0));
+  }
+  // Sort states by total comps judged descending
+  const sortedStates = Object.entries(byState).sort((a, b) => {
+    const totalA = a[1].reduce((s, j) => s + (j.comps_judged || 0), 0);
+    const totalB = b[1].reduce((s, j) => s + (j.comps_judged || 0), 0);
+    return totalB - totalA;
+  });
   const levelColors  = { '0':'#60a5fa', '1':'#4cd964', '2':'#f59e0b', '3':'#e11d48' };
   const levelLabels2 = { '0':'Entry', '1':'Foundational', '2':'Advanced', '3':'Elite' };
   let html = '';
-  for (const [state, list] of Object.entries(byState).sort()) {
+  for (const [state, list] of sortedStates) {
     html += `<div style="margin-bottom:3rem;">
       <h3 style="font-family:var(--font-heading);color:var(--clr-primary);font-size:.85rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;">
         <span>${escapeHtml(state)}</span>
