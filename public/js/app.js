@@ -2874,18 +2874,7 @@ async function loadCompHistory() {
 }
 
 let _compHistoryInited = false;
-const USA_SL_COMPS = [
-  { name: 'Classic Reckoning | USA Streetlifting Maryland', date: '2025-02-09', location: 'Columbia, MD' },
-  { name: '2025 USA Streetlifting National Championships',  date: '2025-04-26', location: 'Columbia, MD' },
-  { name: 'Lone Star Classic 2025',                        date: '2025-07-19', location: 'Fort Worth, TX' },
-  { name: '2025 Empire State Classic',                     date: '2025-08-10', location: 'New York, NY' },
-  { name: 'Sun City Showdown',                             date: '2025-08-23', location: 'El Paso, TX' },
-  { name: '2025 Mile High Classic',                        date: '2025-09-20', location: 'Arvada, CO' },
-  { name: '2025 Lone Star All4 Championship',              date: '2025-10-18', location: 'Fort Worth, TX' },
-  { name: '2025 Virginia State Classic',                   date: '2025-11-15', location: 'Ashland, VA' },
-  { name: '2025 Classic National Championships',           date: '2025-11-22', location: 'Warrington, PA' },
-  { name: 'San Antonio Classic',                           date: '2026-03-14', location: 'San Antonio, TX' },
-];
+let _pastEvents = []; // populated from API on init
 
 const CH_MOVEMENTS_CLASSIC = ['Pulls', 'Dips'];
 const CH_MOVEMENTS_ALL4    = ['Pulls', 'Dips', 'Muscle-ups', 'Squats'];
@@ -2921,34 +2910,45 @@ function getMovementData(compName) {
   return result;
 }
 
-function initCompHistory() {
+async function initCompHistory() {
   if (_compHistoryInited) return;
   _compHistoryInited = true;
 
   const sel = document.getElementById('ch-name');
-  if (sel) {
-    USA_SL_COMPS.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      opt.textContent = `${c.name} (${c.date})`;
-      sel.appendChild(opt);
-    });
+  if (!sel) return;
 
-    sel.addEventListener('change', () => {
-      const comp = USA_SL_COMPS.find(c => c.name === sel.value);
-      const posDiv = document.getElementById('ch-positions');
-      if (comp) {
-        document.getElementById('ch-date').value = comp.date;
-        document.getElementById('ch-location').value = comp.location;
-        if (posDiv) posDiv.style.display = 'flex';
-        renderMovementSelectors(comp.name);
-      } else {
-        document.getElementById('ch-date').value = '';
-        document.getElementById('ch-location').value = '';
-        if (posDiv) posDiv.style.display = 'none';
-      }
-    });
-  }
+  // Load past events from API (events whose date <= today)
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const { events } = await fetch(_API + '/api/events', { credentials: 'include' }).then(r => r.json());
+    _pastEvents = (events || [])
+      .filter(e => e.event_date <= today)
+      .sort((a, b) => b.event_date.localeCompare(a.event_date));
+  } catch { _pastEvents = []; }
+
+  _pastEvents.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.name;
+    opt.dataset.date = e.event_date;
+    opt.dataset.location = e.location || '';
+    opt.textContent = `${e.name} (${e.event_date})`;
+    sel.appendChild(opt);
+  });
+
+  sel.addEventListener('change', () => {
+    const opt = sel.options[sel.selectedIndex];
+    const posDiv = document.getElementById('ch-positions');
+    if (opt && opt.value) {
+      document.getElementById('ch-date').value = opt.dataset.date || '';
+      document.getElementById('ch-location').value = opt.dataset.location || '';
+      if (posDiv) posDiv.style.display = 'flex';
+      renderMovementSelectors(opt.value);
+    } else {
+      document.getElementById('ch-date').value = '';
+      document.getElementById('ch-location').value = '';
+      if (posDiv) posDiv.style.display = 'none';
+    }
+  });
 
   document.getElementById('ch-add-btn')?.addEventListener('click', async () => {
     const name     = document.getElementById('ch-name')?.value.trim();
