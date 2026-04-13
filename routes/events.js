@@ -44,13 +44,14 @@ router.get('/:id/judges', (req, res) => {
     [eventId]
   );
 
-  // From comp_history (admin-added or self-logged) matching this event name
+  // From comp_history (admin-added or self-logged) — match by name (case-insensitive) OR date
   const fromHistory = dbAll(
     `SELECT DISTINCT u.id, u.name, u.state, u.avatar
      FROM comp_history ch
      JOIN users u ON u.id = ch.user_id
-     WHERE ch.comp_name = ?`,
-    [event.name]
+     WHERE LOWER(TRIM(ch.comp_name)) = LOWER(TRIM(?))
+        OR ch.comp_date = (SELECT event_date FROM events WHERE id = ?)`,
+    [event.name, eventId]
   );
 
   // Merge, deduplicate by user id
