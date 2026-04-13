@@ -29,17 +29,37 @@ router.get('/my', (req, res) => {
   res.json({ events: rows });
 });
 
-// GET /api/events/:id/judges — list of judges registered for an event (public)
+// GET /api/events/:id/judges — judges from registrations + comp_history, merged and deduplicated
 router.get('/:id/judges', (req, res) => {
   const eventId = parseInt(req.params.id);
-  const judges = dbAll(
-    `SELECT u.name, u.state, u.avatar
+  const event = dbGet('SELECT name FROM events WHERE id = ?', [eventId]);
+  if (!event) return res.json({ judges: [] });
+
+  // From event_registrations
+  const registered = dbAll(
+    `SELECT u.id, u.name, u.state, u.avatar
      FROM event_registrations r
      JOIN users u ON u.id = r.user_id
-     WHERE r.event_id = ?
-     ORDER BY u.name ASC`,
+     WHERE r.event_id = ?`,
     [eventId]
   );
+
+  // From comp_history (admin-added or self-logged) matching this event name
+  const fromHistory = dbAll(
+    `SELECT DISTINCT u.id, u.name, u.state, u.avatar
+     FROM comp_history ch
+     JOIN users u ON u.id = ch.user_id
+     WHERE ch.comp_name = ?`,
+    [event.name]
+  );
+
+  // Merge, deduplicate by user id
+  const seen = new Set();
+  const judges = [];
+  for (const j of [...registered, ...fromHistory]) {
+    if (!seen.has(j.id)) { seen.add(j.id); judges.push(j); }
+  }
+  judges.sort((a, b) => a.name.localeCompare(b.name));
   res.json({ judges });
 });
 
