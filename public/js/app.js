@@ -2019,6 +2019,16 @@ async function openUserDetail(user) {
       </label>
     </div>
     <button id="ud-save-btn" class="btn-grant" style="padding:.45rem 1rem;">Save Profile</button>
+
+    <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .5rem;">Competition History</h4>
+    <div id="ud-comp-history-list" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.75rem;"></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+      <select id="ud-comp-select" style="${inputStyle};flex:2;min-width:180px;">
+        <option value="">— Select past event —</option>
+        ${(typeof _pastEvents !== 'undefined' ? _pastEvents : []).map(e => `<option value="${escapeAttr(e.name)}" data-date="${escapeAttr(e.event_date)}" data-loc="${escapeAttr(e.location||'')}">${escapeHtml(e.name)} (${e.event_date})</option>`).join('')}
+      </select>
+      <button id="ud-comp-add-btn" class="btn-grant" style="padding:.35rem .8rem;font-size:.82rem;">+ Add</button>
+    </div>
   `;
 
   // Grant buttons inside detail panel
@@ -2099,6 +2109,54 @@ async function openUserDetail(user) {
       showToast('Profile saved.', 'success');
     } catch (err) { showToast(err.message, 'error'); }
     finally { btn.disabled = false; btn.textContent = 'Save Profile'; }
+  });
+
+  // Load and render comp history for this user
+  async function loadUdCompHistory() {
+    const listEl = document.getElementById('ud-comp-history-list');
+    if (!listEl) return;
+    try {
+      const { history } = await apiFetch(`/api/comp-history/user/${user.id}`);
+      if (!history.length) {
+        listEl.innerHTML = '<p style="font-size:.82rem;color:var(--clr-muted);">No competitions logged yet.</p>';
+        return;
+      }
+      listEl.innerHTML = history.map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .65rem;background:rgba(255,255,255,.04);border-radius:7px;font-size:.84rem;">
+          <span><strong>${escapeHtml(c.comp_name)}</strong> <span style="color:var(--clr-muted);font-size:.77rem;">${c.comp_date}${c.location ? ' · ' + escapeHtml(c.location) : ''}</span></span>
+          <button class="btn-revoke" style="font-size:.72rem;padding:.2rem .5rem;" data-ud-comp-del="${c.id}">✕</button>
+        </div>`).join('');
+      listEl.querySelectorAll('[data-ud-comp-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Remove this competition entry?')) return;
+          try {
+            await apiFetch(`/api/admin/comp-history/${btn.dataset.udCompDel}`, { method: 'DELETE' });
+            loadUdCompHistory();
+          } catch (err) { showToast(err.message, 'error'); }
+        });
+      });
+    } catch { listEl.innerHTML = '<p style="font-size:.82rem;color:#f87171;">Could not load.</p>'; }
+  }
+  loadUdCompHistory();
+
+  document.getElementById('ud-comp-add-btn')?.addEventListener('click', async () => {
+    const sel = document.getElementById('ud-comp-select');
+    const opt = sel?.options[sel.selectedIndex];
+    if (!opt?.value) { showToast('Select a competition first.', 'error'); return; }
+    try {
+      await apiFetch('/api/admin/comp-history', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: user.id,
+          comp_name: opt.value,
+          comp_date: opt.dataset.date,
+          location: opt.dataset.loc,
+        }),
+      });
+      showToast('Competition added.', 'success');
+      sel.value = '';
+      loadUdCompHistory();
+    } catch (err) { showToast(err.message, 'error'); }
   });
 
   overlay.classList.add('open');

@@ -574,6 +574,27 @@ router.get('/course-progress', requireAdmin, (req, res) => {
   res.json({ users: result });
 });
 
+// POST /api/admin/comp-history — add a comp history entry for any user
+router.post('/comp-history', requireAdmin, (req, res) => {
+  const { userId, comp_name, comp_date, location, role } = req.body;
+  if (!userId || !comp_name || !comp_date) return res.status(400).json({ error: 'userId, comp_name and comp_date required.' });
+  dbRun(
+    'INSERT INTO comp_history (user_id, comp_name, comp_date, location, role) VALUES (?, ?, ?, ?, ?)',
+    [userId, comp_name.trim(), comp_date, location?.trim() || '', role || '']
+  );
+  dbRun('UPDATE users SET comps_judged = comps_judged + 1 WHERE id = ?', [userId]);
+  res.json({ success: true });
+});
+
+// DELETE /api/admin/comp-history/:id — remove any comp history entry
+router.delete('/comp-history/:id', requireAdmin, (req, res) => {
+  const row = dbGet('SELECT user_id FROM comp_history WHERE id = ?', [req.params.id]);
+  if (!row) return res.status(404).json({ error: 'Not found.' });
+  dbRun('DELETE FROM comp_history WHERE id = ?', [req.params.id]);
+  dbRun('UPDATE users SET comps_judged = MAX(0, comps_judged - 1) WHERE id = ?', [row.user_id]);
+  res.json({ success: true });
+});
+
 // DELETE /api/admin/delete-payment/:id
 router.delete('/delete-payment/:id', requireAdmin, (req, res) => {
   const paymentId = parseInt(req.params.id);
