@@ -1480,7 +1480,7 @@ async function loadAdmin() {
         ${applications.map(a => `
           <div class="l3-app-row">
             <div>
-              <strong>${a.name}</strong> <span style="color:var(--clr-muted);font-size:.85rem;">${a.email}</span>
+              <strong>${escapeHtml(a.name)}</strong> <span style="color:var(--clr-muted);font-size:.85rem;">${escapeHtml(a.email)}</span>
               <span class="cert-pill ${a.status === 'pending' ? 'cert-pill--pending' : (a.status === 'approved' ? 'cert-pill--paid' : 'cert-pill--none')}" style="margin-left:.5rem;">${a.status}</span>
             </div>
             ${a.status === 'pending' ? `
@@ -1529,8 +1529,8 @@ async function loadAdmin() {
               ? '<tr><td colspan="8" style="text-align:center;color:var(--clr-muted)">No users yet.</td></tr>'
               : users.map(u => `
                 <tr class="admin-user-row" data-uid="${u.id}" style="cursor:pointer;">
-                  <td>${u.name || '—'}</td>
-                  <td style="font-size:.82rem;">${u.email}</td>
+                  <td>${escapeHtml(u.name || '—')}</td>
+                  <td style="font-size:.82rem;">${escapeHtml(u.email)}</td>
                   <td>${u.state || '—'}</td>
                   <td>${payPill(u)}</td>
                   <td>${certBadges(u)}</td>

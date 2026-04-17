@@ -55,7 +55,20 @@ app.use(helmet({
   // Don't send HSTS on localhost (it can get cached by browsers and break HTTP dev)
   strictTransportSecurity: isDev ? false : undefined,
 }));
-app.use(cors({ origin: true, credentials: true }));
+const ALLOWED_ORIGINS = [
+  process.env.BASE_URL,
+  'https://usastreetliftingjudging.org',
+  'https://www.usastreetliftingjudging.org',
+  ...(isDev ? ['http://localhost:3000', 'http://localhost:3001'] : []),
+].filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('CORS: origin not allowed'));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
