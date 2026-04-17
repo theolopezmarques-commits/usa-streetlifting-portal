@@ -216,11 +216,14 @@ async function handleRegister(e) {
         name: document.getElementById('reg-name').value,
         email: document.getElementById('reg-email').value,
         password: document.getElementById('reg-password').value,
+        state: document.getElementById('reg-state').value,
+        experience: document.getElementById('reg-experience').value,
       }),
     });
     if (data.pending_verification) {
       errEl.style.color = 'var(--clr-primary)';
       errEl.textContent = 'Account created! Check your email for a verification link.';
+      showToast('Account created! Check your email to verify.', 'success');
       document.getElementById('register-form').reset();
     } else {
       currentUser = data.user;
@@ -1854,7 +1857,7 @@ async function loadCourseProgress() {
           </tbody>
         </table>
       </div>`;
-  } catch (err) { container.innerHTML = `<p style="color:#f87171;text-align:center;padding:2rem;">${err.message}</p>`; }
+  } catch (err) { container.innerHTML = `<p style="color:#f87171;text-align:center;padding:2rem;">${escapeHtml(err.message)}</p>`; }
 }
 
 function renderPaymentSection(user) {

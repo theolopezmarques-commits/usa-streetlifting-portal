@@ -42,7 +42,7 @@ function generateToken() {
 // -------- Register --------
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, state, experience } = req.body;
 
     if (!name || !email || !password)
       return res.status(400).json({ error: 'Name, email and password are required.' });
@@ -52,6 +52,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email address.' });
     if (typeof password !== 'string' || password.length < 8 || password.length > 128)
       return res.status(400).json({ error: 'Password must be 8-128 characters.' });
+    if (state !== undefined && typeof state === 'string' && state.length > 100)
+      return res.status(400).json({ error: 'State must be under 100 characters.' });
+    if (experience !== undefined && typeof experience === 'string' && experience.length > 500)
+      return res.status(400).json({ error: 'Experience must be under 500 characters.' });
 
     const existing = dbGet('SELECT id, email_verified FROM users WHERE email = ?', [email.toLowerCase().trim()]);
     if (existing) {
@@ -74,8 +78,8 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const result = dbRun(
-      'INSERT INTO users (name, email, password, email_verified) VALUES (?, ?, ?, 0)',
-      [name.trim(), email.toLowerCase().trim(), hashedPassword]
+      'INSERT INTO users (name, email, password, state, experience, email_verified) VALUES (?, ?, ?, ?, ?, 0)',
+      [name.trim(), email.toLowerCase().trim(), hashedPassword, state ? state.trim() : null, experience ? experience.trim() : null]
     );
     const userId = result.lastInsertRowid;
 

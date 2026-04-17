@@ -9,8 +9,12 @@ module.exports = function stripeWebhook(req, res) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    // Webhook secret not configured yet — skip verification (dev only)
-    console.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature check');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('STRIPE_WEBHOOK_SECRET not set in production — rejecting webhook');
+      return res.status(400).send('Webhook configuration error.');
+    }
+    // Dev only: skip verification (never deploy without STRIPE_WEBHOOK_SECRET)
+    console.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev only)');
     handleEvent(req.body.toString());
     return res.json({ received: true });
   }

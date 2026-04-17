@@ -36,6 +36,7 @@ app.set('trust proxy', 1); // Required for accurate req.ip behind proxies
 app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), stripeWebhook);
 
 // --------------- Security middleware ---------------
+const isDev = process.env.NODE_ENV !== 'production';
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -47,8 +48,12 @@ app.use(helmet({
       connectSrc: ["'self'", "https://usastreetlifting.org", "https://calendar.app.google"],
       frameSrc: ["'self'", "blob:"],
       mediaSrc: ["'self'", "https://pub-be06f36754244e97924aad36ac6257af.r2.dev"],
+      // Disable HTTPS upgrade locally — the dev server runs on HTTP
+      upgradeInsecureRequests: isDev ? null : [],
     },
   },
+  // Don't send HSTS on localhost (it can get cached by browsers and break HTTP dev)
+  strictTransportSecurity: isDev ? false : undefined,
 }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10kb' }));
@@ -119,7 +124,7 @@ app.get('/api/me', authMiddleware, (req, res) => {
 app.get('/api/judges', (req, res) => {
   const { dbAll } = require('./db');
   const judges = dbAll(
-    `SELECT u.id, u.name, u.state, u.email, u.instagram, u.position, u.avatar,
+    `SELECT u.id, u.name, u.state, u.instagram, u.position, u.avatar,
             (SELECT COUNT(*) FROM comp_history ch WHERE ch.user_id = u.id) AS comps_judged,
             GROUP_CONCAT(c.level ORDER BY c.level) AS levels
      FROM users u
