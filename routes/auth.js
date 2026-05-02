@@ -218,7 +218,7 @@ router.post('/forgot-password', async (req, res) => {
   dbRun('DELETE FROM password_resets WHERE user_id = ?', [user.id]);
   dbRun('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)', [user.id, token, expires]);
 
-  const baseUrl = process.env.BASE_URL || 'https://judging-usastreetlifting.org';
+  const baseUrl = process.env.BASE_URL || 'https://usastreetliftingjudging.org';
   const link = `${baseUrl}/?reset_token=${token}`;
 
   await sendEmail({

@@ -57,8 +57,8 @@ app.use(helmet({
 }));
 const ALLOWED_ORIGINS = [
   process.env.BASE_URL,
-  'https://judging-usastreetlifting.org',
-  'https://www.judging-usastreetlifting.org',
+  'https://usastreetliftingjudging.org',
+  'https://www.usastreetliftingjudging.org',
   ...(isDev ? ['http://localhost:3000', 'http://localhost:3001'] : []),
 ].filter(Boolean);
 app.use(cors({
