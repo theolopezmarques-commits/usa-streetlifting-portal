@@ -206,6 +206,7 @@ router.post('/logout', (_req, res) => {
 
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
+  try {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required.' });
   const user = dbGet('SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
@@ -237,6 +238,10 @@ router.post('/forgot-password', async (req, res) => {
       </div>`
   });
   res.json({ ok: true });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
 });
 
 // POST /api/auth/reset-password

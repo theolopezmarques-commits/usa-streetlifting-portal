@@ -133,7 +133,12 @@ async function apiFetch(url, options = {}) {
     credentials: 'include',
     ...options,
   });
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(res.ok ? 'Unexpected server response.' : 'Server error. Please try again.');
+  }
   if (!res.ok) {
     const err = new Error(data.error || 'Request failed');
     if (data.userId) err.userId = data.userId;
