@@ -279,67 +279,6 @@ async function initDb() {
   // welcome_sent flag
   try { db.run('ALTER TABLE users ADD COLUMN welcome_sent INTEGER NOT NULL DEFAULT 0'); } catch {}
 
-  // ── Competition tables ────────────────────────────────────────────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS competitions (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      name        TEXT NOT NULL,
-      date        TEXT,
-      location    TEXT,
-      status      TEXT NOT NULL DEFAULT 'setup',
-      cur_flight  TEXT NOT NULL DEFAULT 'A',
-      cur_lift    TEXT NOT NULL DEFAULT 'muscle_up',
-      cur_attempt INTEGER NOT NULL DEFAULT 1,
-      cur_athlete_id INTEGER,
-      created_by  INTEGER NOT NULL,
-      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (created_by) REFERENCES users(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS comp_athletes (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      comp_id      INTEGER NOT NULL,
-      name         TEXT NOT NULL,
-      weight_class TEXT NOT NULL,
-      gender       TEXT NOT NULL DEFAULT 'M',
-      flight       TEXT NOT NULL DEFAULT 'A',
-      body_weight  REAL,
-      photo_url    TEXT,
-      records      TEXT,
-      bio          TEXT,
-      FOREIGN KEY (comp_id) REFERENCES competitions(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS comp_attempts (
-      id              INTEGER PRIMARY KEY AUTOINCREMENT,
-      comp_id         INTEGER NOT NULL,
-      athlete_id      INTEGER NOT NULL,
-      lift            TEXT NOT NULL,
-      attempt_num     INTEGER NOT NULL,
-      declared_weight REAL,
-      result          INTEGER,
-      judged_at       TEXT,
-      UNIQUE(athlete_id, lift, attempt_num),
-      FOREIGN KEY (comp_id)    REFERENCES competitions(id),
-      FOREIGN KEY (athlete_id) REFERENCES comp_athletes(id)
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS comp_access (
-      user_id  INTEGER NOT NULL,
-      comp_id  INTEGER NOT NULL,
-      role     TEXT NOT NULL,
-      PRIMARY KEY (user_id, comp_id),
-      FOREIGN KEY (user_id)  REFERENCES users(id),
-      FOREIGN KEY (comp_id)  REFERENCES competitions(id)
-    )
-  `);
-
   // Security indexes
   db.run('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
   db.run('CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)');

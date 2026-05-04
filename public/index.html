@@ -41,7 +41,6 @@
         <a id="nav-admin" data-nav="admin" class="hidden btn-nav btn-nav--admin">⭐ Admin</a>
         <a id="nav-directory" data-nav="directory">Judges</a>
         <a id="nav-events" data-nav="events">Events</a>
-        <a id="nav-comp" data-nav="comp" class="hidden">🏆 Comp</a>
         <a id="nav-chat" data-nav="chat" class="hidden" style="position:relative;">Chat<span id="chat-unread-badge" style="display:none;position:absolute;top:-6px;right:-10px;background:#c0392b;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:.7rem;font-weight:700;line-height:18px;text-align:center;padding:0 4px;pointer-events:none;"></span></a>
         <a id="nav-logout" data-action="logout" class="hidden btn-nav">Logout</a>
       </div>
@@ -959,176 +958,6 @@
     </div>
   </footer>
 
-  <!-- ============ COMP: LIST ============ -->
-  <section id="page-comp" class="page">
-    <div class="page-hero page-hero--sm">
-      <h1 class="slide-in">Competitions</h1>
-      <p class="slide-in" style="color:var(--clr-muted)">Live competition management</p>
-    </div>
-    <div class="container" style="padding:2rem 1rem;max-width:900px;margin:0 auto;">
-      <div id="comp-admin-bar" class="hidden" style="margin-bottom:1.5rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-        <input id="comp-new-name" type="text" placeholder="Competition name" style="padding:.5rem .75rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.9rem;min-width:220px;">
-        <input id="comp-new-date" type="date" style="padding:.5rem .75rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.9rem;">
-        <input id="comp-new-location" type="text" placeholder="Location (optional)" style="padding:.5rem .75rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.9rem;min-width:160px;">
-        <button id="comp-create-btn" class="btn btn-primary">+ Create Competition</button>
-      </div>
-      <div id="comp-list-wrap">
-        <p style="color:var(--clr-muted);text-align:center;padding:3rem;">Loading competitions…</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ COMP: DIRECTOR VIEW ============ -->
-  <section id="page-comp-director" class="page">
-    <div style="display:flex;align-items:center;gap:1rem;padding:1rem 1.5rem;background:#0d0d0d;border-bottom:1px solid #1e1e1e;flex-wrap:wrap;">
-      <button class="btn btn-outline btn-sm" onclick="navigateTo('comp')">← Back</button>
-      <h2 id="director-comp-title" style="font-size:1.1rem;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></h2>
-      <span id="director-status-badge" style="font-size:.7rem;font-weight:700;padding:.2rem .6rem;border-radius:4px;background:#333;"></span>
-      <button id="director-activate-btn" class="btn btn-primary btn-sm hidden">▶ Start Competition</button>
-      <button id="director-finish-btn" class="btn btn-sm hidden" style="background:#333;">■ Finish</button>
-      <a id="director-tv-link" href="#" target="_blank" class="btn btn-sm btn-outline">📺 TV View</a>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:calc(100vh - 120px);overflow:hidden;" id="director-body">
-
-      <!-- Left: athlete management -->
-      <div style="border-right:1px solid #1e1e1e;overflow-y:auto;display:flex;flex-direction:column;">
-        <div style="padding:1rem 1.25rem;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;background:#0d0d0d;">
-          <strong style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;flex:1;">Athletes</strong>
-          <button id="add-athlete-btn" class="btn btn-primary btn-sm">+ Add Athlete</button>
-        </div>
-        <!-- Add athlete form (hidden by default) -->
-        <div id="add-athlete-form" style="display:none;padding:1rem 1.25rem;border-bottom:1px solid #1e1e1e;background:#111;gap:.5rem;flex-direction:column;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
-            <input id="ath-name" type="text" placeholder="Full name" class="comp-input">
-            <select id="ath-gender" class="comp-input"><option value="M">Male</option><option value="F">Female</option></select>
-            <select id="ath-wc" class="comp-input">
-              <optgroup label="Men"><option>-60kg</option><option>-70kg</option><option>-80kg</option><option>-90kg</option><option>-100kg</option><option>+100kg</option></optgroup>
-              <optgroup label="Women"><option>-50kg</option><option>-60kg F</option><option>-70kg F</option><option>+70kg F</option></optgroup>
-            </select>
-            <select id="ath-flight" class="comp-input">
-              <option>A</option><option>B</option><option>C</option><option>D</option>
-            </select>
-            <input id="ath-bw" type="number" step="0.1" placeholder="Body weight (kg)" class="comp-input">
-            <input id="ath-records" type="text" placeholder="Records / highlights" class="comp-input">
-          </div>
-          <input id="ath-bio" type="text" placeholder="Bio (1-2 sentences)" class="comp-input" style="width:100%;">
-          <div style="display:flex;gap:.5rem;justify-content:flex-end;">
-            <button class="btn btn-sm btn-outline" onclick="document.getElementById('add-athlete-form').style.display='none'">Cancel</button>
-            <button id="save-athlete-btn" class="btn btn-primary btn-sm">Save Athlete</button>
-          </div>
-        </div>
-        <div id="athlete-list" style="flex:1;overflow-y:auto;padding:.5rem;"></div>
-      </div>
-
-      <!-- Right: round control + weights -->
-      <div style="overflow-y:auto;display:flex;flex-direction:column;">
-        <!-- Round selector -->
-        <div style="padding:1rem 1.25rem;border-bottom:1px solid #1e1e1e;background:#0d0d0d;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
-          <strong style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;">Round</strong>
-          <select id="round-flight" class="comp-input" style="width:auto;">
-            <option>A</option><option>B</option><option>C</option><option>D</option>
-          </select>
-          <select id="round-lift" class="comp-input" style="width:auto;">
-            <option value="muscle_up">Muscle Up</option>
-            <option value="pull_up">Pull Up</option>
-            <option value="dip">Dip</option>
-            <option value="squat">Squat</option>
-          </select>
-          <select id="round-attempt" class="comp-input" style="width:auto;">
-            <option value="1">Attempt 1</option>
-            <option value="2">Attempt 2</option>
-            <option value="3">Attempt 3</option>
-          </select>
-          <button id="set-round-btn" class="btn btn-primary btn-sm">Set Round</button>
-        </div>
-        <!-- Weight entry table -->
-        <div style="padding:1rem 1.25rem;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center;background:#0d0d0d;">
-          <strong style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;">Declared Weights</strong>
-          <button id="save-weights-btn" class="btn btn-primary btn-sm">Save Weights</button>
-        </div>
-        <div id="weights-table" style="flex:1;padding:.75rem 1.25rem;overflow-y:auto;"></div>
-
-        <!-- Grant access -->
-        <div style="padding:1rem 1.25rem;border-top:1px solid #1e1e1e;background:#0d0d0d;" id="grant-access-section">
-          <strong style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:.5rem;">Grant Access</strong>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-            <input id="grant-email" type="text" placeholder="user@email.com" class="comp-input" style="flex:1;min-width:160px;">
-            <select id="grant-role" class="comp-input" style="width:auto;"><option value="director">Director</option><option value="judge">Judge</option></select>
-            <button id="grant-btn" class="btn btn-primary btn-sm">Grant</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ COMP: JUDGE VIEW ============ -->
-  <section id="page-comp-judge" class="page">
-    <div style="display:flex;align-items:center;gap:1rem;padding:1rem 1.5rem;background:#0d0d0d;border-bottom:1px solid #1e1e1e;">
-      <button class="btn btn-outline btn-sm" onclick="navigateTo('comp')">← Back</button>
-      <h2 id="judge-comp-title" style="font-size:1.1rem;font-weight:700;flex:1;"></h2>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 120px);padding:2rem;gap:2rem;text-align:center;">
-      <div id="judge-round-info" style="font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--clr-muted);"></div>
-      <div id="judge-athlete-name" style="font-size:2.5rem;font-weight:900;text-transform:uppercase;letter-spacing:.03em;line-height:1.1;"></div>
-      <div id="judge-weight" style="font-size:4rem;font-weight:900;color:#fff;"></div>
-      <div id="judge-lift-info" style="font-size:.8rem;color:var(--clr-muted);"></div>
-      <div style="display:flex;gap:1.5rem;width:100%;max-width:500px;margin-top:1rem;">
-        <button id="judge-good-btn" class="btn btn-full" style="flex:1;padding:2rem;font-size:1.4rem;font-weight:900;background:#27ae60;border:none;border-radius:12px;color:#fff;cursor:pointer;letter-spacing:.05em;">✓ GOOD LIFT</button>
-        <button id="judge-nolift-btn" class="btn btn-full" style="flex:1;padding:2rem;font-size:1.4rem;font-weight:900;background:#c0392b;border:none;border-radius:12px;color:#fff;cursor:pointer;letter-spacing:.05em;">✗ NO LIFT</button>
-      </div>
-      <div id="judge-feedback" style="font-size:1rem;font-weight:700;min-height:1.5rem;"></div>
-      <div id="judge-next-info" style="font-size:.8rem;color:var(--clr-muted);"></div>
-    </div>
-  </section>
-
-  <style>
-    .comp-input {
-      padding: .4rem .65rem;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.06);
-      color: #fff;
-      font-size: .85rem;
-    }
-    .comp-input::placeholder { color: #555; }
-    .comp-card {
-      background: #111;
-      border: 1px solid #1e1e1e;
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-      cursor: pointer;
-      transition: border-color .2s;
-    }
-    .comp-card:hover { border-color: var(--clr-primary); }
-    .comp-status-badge {
-      font-size: .65rem; font-weight: 700; padding: .2rem .5rem; border-radius: 4px;
-      text-transform: uppercase; letter-spacing: .08em;
-    }
-    .status-setup    { background: #333; color: #aaa; }
-    .status-active   { background: #1a3a1a; color: #4cd964; }
-    .status-finished { background: #1a1a3a; color: #7b9fff; }
-    .athlete-row {
-      display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem;
-      border-radius: 8px; background: #111; border: 1px solid #1e1e1e;
-      margin-bottom: .35rem; font-size: .82rem;
-    }
-    .athlete-row .ath-flight-badge {
-      font-size: .65rem; font-weight: 700; padding: .15rem .4rem;
-      border-radius: 4px; background: #333; color: #aaa; flex-shrink: 0;
-    }
-    .weight-row {
-      display: flex; align-items: center; gap: .75rem;
-      padding: .4rem 0; border-bottom: 1px solid #1a1a1a; font-size: .85rem;
-    }
-    .weight-row .w-name { flex: 1; }
-    .weight-row input { width: 80px; }
-  </style>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <!-- ============ FORGOT PASSWORD MODAL ============ -->
   <div id="forgot-pw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
@@ -1155,7 +984,7 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=33"></script>
+  <script src="/js/app.js?v=32"></script>
   <!-- Capacitor: only present in native app builds -->
   <script>
     if (window.Capacitor) {
