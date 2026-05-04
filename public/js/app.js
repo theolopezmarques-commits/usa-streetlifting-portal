@@ -66,6 +66,9 @@ function navigate(page) {
     }
   }
   if (page === 'judge-profile') { /* loaded externally via openJudgeProfile() */ }
+  if (page === 'comp' && currentUser) loadCompList();
+  if (page === 'comp-director' && currentUser) { /* loaded by openDirectorView */ }
+  if (page === 'comp-judge' && currentUser) { /* loaded by openJudgeView */ }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -86,6 +89,8 @@ function updateNav() {
   document.getElementById('nav-admin').classList.toggle('hidden', !(loggedIn && currentUser.is_admin));
   const chatNav = document.getElementById('nav-chat');
   if (chatNav) chatNav.classList.toggle('hidden', !(loggedIn && (currentUser?._isCertified || currentUser?.is_admin)));
+  const compNav = document.getElementById('nav-comp');
+  if (compNav) compNav.classList.toggle('hidden', !loggedIn);
   // Course nav: shown when logged in (visibility refined when status is loaded)
   const courseNav = document.getElementById('nav-course');
   if (courseNav) courseNav.classList.toggle('hidden', !loggedIn);
@@ -3478,3 +3483,310 @@ async function loadAnalytics() {
     if (e.key === 'Enter') submitVerifyCode();
   });
 })();
+
+// ===================== COMPETITION APP =====================
+const LIFTS = ['muscle_up', 'pull_up', 'dip', 'squat'];
+const LIFT_NAMES = { muscle_up: 'Muscle Up', pull_up: 'Pull Up', dip: 'Dip', squat: 'Squat' };
+let _compData = null; // currently open competition state
+let _compId   = null;
+let _judgePolling = null;
+
+// ── Competition list ──────────────────────────────────────────────────────────
+async function loadCompList() {
+  const wrap = document.getElementById('comp-list-wrap');
+  const adminBar = document.getElementById('comp-admin-bar');
+  if (adminBar && currentUser?.is_admin) adminBar.classList.remove('hidden');
+
+  try {
+    const { comps } = await apiFetch('/api/comp');
+    if (!comps.length) {
+      wrap.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:3rem;">No competitions yet.</p>';
+      return;
+    }
+    wrap.innerHTML = comps.map(c => `
+      <div class="comp-card" style="margin-bottom:.75rem;" data-comp-id="${c.id}">
+        <div>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:.2rem;">${escHtml(c.name)}</div>
+          <div style="font-size:.8rem;color:var(--clr-muted);">${c.date ? c.date + ' · ' : ''}${c.location || ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <span class="comp-status-badge status-${c.status}">${c.status}</span>
+          ${c.role === 'judge' || currentUser?.is_admin
+            ? `<button class="btn btn-sm btn-outline" onclick="openJudgeView(${c.id})">⚖ Judge</button>` : ''}
+          ${c.role === 'director' || currentUser?.is_admin
+            ? `<button class="btn btn-primary btn-sm" onclick="openDirectorView(${c.id})">🎛 Director</button>` : ''}
+        </div>
+      </div>`).join('');
+  } catch {
+    wrap.innerHTML = '<p style="color:#f87171;text-align:center;padding:2rem;">Failed to load competitions.</p>';
+  }
+}
+
+// ── Create competition ────────────────────────────────────────────────────────
+document.getElementById('comp-create-btn')?.addEventListener('click', async () => {
+  const name = document.getElementById('comp-new-name')?.value.trim();
+  const date = document.getElementById('comp-new-date')?.value;
+  const location = document.getElementById('comp-new-location')?.value.trim();
+  if (!name) return;
+  try {
+    await apiFetch('/api/comp', { method: 'POST', body: JSON.stringify({ name, date, location }) });
+    document.getElementById('comp-new-name').value = '';
+    document.getElementById('comp-new-date').value = '';
+    document.getElementById('comp-new-location').value = '';
+    loadCompList();
+  } catch (e) { alert(e.message); }
+});
+
+// ── Director view ─────────────────────────────────────────────────────────────
+async function openDirectorView(compId) {
+  _compId = compId;
+  navigate('comp-director');
+  await refreshDirectorView();
+  document.getElementById('director-tv-link').href = `/comp-live.html?id=${compId}`;
+}
+
+async function refreshDirectorView() {
+  try {
+    _compData = await apiFetch(`/api/comp/${_compId}`);
+    renderDirectorView(_compData);
+  } catch (e) { alert('Failed to load competition: ' + e.message); }
+}
+
+function renderDirectorView({ comp, athletes, attempts }) {
+  document.getElementById('director-comp-title').textContent = comp.name;
+  const badge = document.getElementById('director-status-badge');
+  badge.textContent = comp.status;
+  badge.className = `comp-status-badge status-${comp.status}`;
+
+  document.getElementById('director-activate-btn').classList.toggle('hidden', comp.status !== 'setup');
+  document.getElementById('director-finish-btn').classList.toggle('hidden', comp.status !== 'active');
+  document.getElementById('grant-access-section').classList.toggle('hidden', !currentUser?.is_admin);
+
+  // Sync round selectors
+  document.getElementById('round-flight').value  = comp.cur_flight;
+  document.getElementById('round-lift').value    = comp.cur_lift;
+  document.getElementById('round-attempt').value = comp.cur_attempt;
+
+  // Athlete list
+  const listEl = document.getElementById('athlete-list');
+  if (!athletes.length) {
+    listEl.innerHTML = '<p style="color:var(--clr-muted);padding:1rem;font-size:.85rem;">No athletes yet. Add some →</p>';
+  } else {
+    listEl.innerHTML = athletes.map(a => `
+      <div class="athlete-row">
+        <span class="ath-flight-badge">${escHtml(a.flight)}</span>
+        <span style="flex:1;font-weight:600;">${escHtml(a.name)}</span>
+        <span style="font-size:.75rem;color:var(--clr-muted);">${escHtml(a.weight_class)}</span>
+        <button class="btn btn-sm btn-outline" style="padding:.2rem .5rem;font-size:.7rem;" onclick="deleteAthlete(${a.id})">✕</button>
+      </div>`).join('');
+  }
+
+  // Weights table for current round
+  const flightAthletes = athletes.filter(a => a.flight === comp.cur_flight);
+  const weightsEl = document.getElementById('weights-table');
+  if (!flightAthletes.length) {
+    weightsEl.innerHTML = '<p style="color:var(--clr-muted);font-size:.85rem;">No athletes in this flight.</p>';
+  } else {
+    weightsEl.innerHTML = `
+      <p style="font-size:.75rem;color:var(--clr-muted);margin-bottom:.75rem;">
+        Flight ${comp.cur_flight} · ${LIFT_NAMES[comp.cur_lift]} · Attempt ${comp.cur_attempt}
+      </p>` +
+      flightAthletes.map(a => {
+        const att = attempts.find(x => x.athlete_id === a.id && x.lift === comp.cur_lift && x.attempt_num === comp.cur_attempt);
+        const resultDot = att?.result === 1 ? '🟢' : att?.result === 0 ? '🔴' : '⚪';
+        return `<div class="weight-row">
+          <span class="w-name">${resultDot} ${escHtml(a.name)}</span>
+          <input type="number" step="0.5" class="comp-input weight-input" data-athlete-id="${a.id}"
+            value="${att?.declared_weight ?? ''}" placeholder="kg" style="width:80px;">
+        </div>`;
+      }).join('');
+  }
+}
+
+// ── Director controls ─────────────────────────────────────────────────────────
+document.getElementById('director-activate-btn')?.addEventListener('click', async () => {
+  if (!confirm('Start this competition? Athletes and weights should be entered first.')) return;
+  try {
+    await apiFetch(`/api/comp/${_compId}/activate`, { method: 'POST' });
+    refreshDirectorView();
+  } catch (e) { alert(e.message); }
+});
+
+document.getElementById('director-finish-btn')?.addEventListener('click', async () => {
+  if (!confirm('Mark competition as finished?')) return;
+  try {
+    await apiFetch(`/api/comp/${_compId}/finish`, { method: 'POST' });
+    refreshDirectorView();
+  } catch (e) { alert(e.message); }
+});
+
+document.getElementById('set-round-btn')?.addEventListener('click', async () => {
+  const cur_flight  = document.getElementById('round-flight').value;
+  const cur_lift    = document.getElementById('round-lift').value;
+  const cur_attempt = parseInt(document.getElementById('round-attempt').value);
+  try {
+    await apiFetch(`/api/comp/${_compId}/state`, { method: 'PUT', body: JSON.stringify({ cur_flight, cur_lift, cur_attempt }) });
+    refreshDirectorView();
+  } catch (e) { alert(e.message); }
+});
+
+document.getElementById('save-weights-btn')?.addEventListener('click', async () => {
+  const inputs = document.querySelectorAll('.weight-input');
+  const weights = [];
+  inputs.forEach(inp => {
+    const w = parseFloat(inp.value);
+    if (!isNaN(w) && w > 0) weights.push({ athlete_id: parseInt(inp.dataset.athleteId), weight: w });
+  });
+  if (!weights.length) return;
+  const lift       = document.getElementById('round-lift').value;
+  const attempt_num = parseInt(document.getElementById('round-attempt').value);
+  try {
+    await apiFetch(`/api/comp/${_compId}/weights`, { method: 'PUT', body: JSON.stringify({ lift, attempt_num, weights }) });
+    refreshDirectorView();
+  } catch (e) { alert(e.message); }
+});
+
+// ── Add athlete ───────────────────────────────────────────────────────────────
+document.getElementById('add-athlete-btn')?.addEventListener('click', () => {
+  const form = document.getElementById('add-athlete-form');
+  form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+});
+
+document.getElementById('save-athlete-btn')?.addEventListener('click', async () => {
+  const name         = document.getElementById('ath-name').value.trim();
+  const gender       = document.getElementById('ath-gender').value;
+  const weight_class = document.getElementById('ath-wc').value;
+  const flight       = document.getElementById('ath-flight').value;
+  const body_weight  = parseFloat(document.getElementById('ath-bw').value) || null;
+  const records      = document.getElementById('ath-records').value.trim();
+  const bio          = document.getElementById('ath-bio').value.trim();
+  if (!name) return;
+  try {
+    await apiFetch(`/api/comp/${_compId}/athletes`, { method: 'POST', body: JSON.stringify({ name, gender, weight_class, flight, body_weight, records, bio }) });
+    document.getElementById('add-athlete-form').style.display = 'none';
+    ['ath-name','ath-bw','ath-records','ath-bio'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    refreshDirectorView();
+  } catch (e) { alert(e.message); }
+});
+
+async function deleteAthlete(athleteId) {
+  if (!confirm('Remove this athlete?')) return;
+  try {
+    await apiFetch(`/api/comp/${_compId}/athletes/${athleteId}`, { method: 'DELETE' });
+    refreshDirectorView();
+  } catch (e) { alert(e.message); }
+}
+
+// ── Grant access ──────────────────────────────────────────────────────────────
+document.getElementById('grant-btn')?.addEventListener('click', async () => {
+  const email = document.getElementById('grant-email').value.trim();
+  const role  = document.getElementById('grant-role').value;
+  if (!email) return;
+  try {
+    await apiFetch(`/api/comp/${_compId}/access`, { method: 'POST', body: JSON.stringify({ email, role }) });
+    document.getElementById('grant-email').value = '';
+    alert(`Access granted.`);
+  } catch (e) { alert(e.message); }
+});
+
+// ── Judge view ────────────────────────────────────────────────────────────────
+async function openJudgeView(compId) {
+  _compId = compId;
+  navigate('comp-judge');
+  await refreshJudgeView();
+  // Poll every 3 seconds to stay in sync
+  clearInterval(_judgePolling);
+  _judgePolling = setInterval(refreshJudgeView, 3000);
+}
+
+async function refreshJudgeView() {
+  try {
+    const data = await apiFetch(`/api/comp/${_compId}`);
+    _compData = data;
+    renderJudgeView(data);
+  } catch {}
+}
+
+function renderJudgeView({ comp, athletes, attempts }) {
+  document.getElementById('judge-comp-title').textContent = comp.name;
+
+  const roundInfo = document.getElementById('judge-round-info');
+  roundInfo.textContent = `Flight ${comp.cur_flight} · ${LIFT_NAMES[comp.cur_lift]} · Attempt ${comp.cur_attempt}`;
+
+  if (comp.status !== 'active') {
+    document.getElementById('judge-athlete-name').textContent = comp.status === 'setup' ? 'Competition not started' : 'Competition finished';
+    document.getElementById('judge-weight').textContent = '';
+    document.getElementById('judge-lift-info').textContent = '';
+    document.getElementById('judge-good-btn').disabled = true;
+    document.getElementById('judge-nolift-btn').disabled = true;
+    return;
+  }
+
+  const flightAthletes = athletes
+    .filter(a => a.flight === comp.cur_flight)
+    .map(a => {
+      const att = attempts.find(x => x.athlete_id === a.id && x.lift === comp.cur_lift && x.attempt_num === comp.cur_attempt);
+      return { ...a, declared_weight: att?.declared_weight ?? null, result: att?.result ?? null };
+    })
+    .sort((a, b) => (a.declared_weight ?? 9999) - (b.declared_weight ?? 9999));
+
+  const current = flightAthletes.find(a => a.result === null || a.result === undefined);
+  const next    = current ? flightAthletes.find(a => a.id !== current.id && (a.result === null || a.result === undefined)) : null;
+
+  if (!current) {
+    document.getElementById('judge-athlete-name').textContent = 'Round Complete';
+    document.getElementById('judge-weight').textContent = '';
+    document.getElementById('judge-lift-info').textContent = 'Waiting for director to start next round…';
+    document.getElementById('judge-good-btn').disabled = true;
+    document.getElementById('judge-nolift-btn').disabled = true;
+    document.getElementById('judge-next-info').textContent = '';
+    return;
+  }
+
+  document.getElementById('judge-athlete-name').textContent = current.name;
+  document.getElementById('judge-weight').textContent = current.declared_weight ? `${current.declared_weight} kg` : '— kg';
+  document.getElementById('judge-lift-info').textContent = `${LIFT_NAMES[comp.cur_lift]} · ${current.weight_class}`;
+  document.getElementById('judge-next-info').textContent = next ? `Next: ${next.name} (${next.declared_weight ?? '?'} kg)` : 'Last athlete in round';
+  document.getElementById('judge-feedback').textContent = '';
+  document.getElementById('judge-good-btn').disabled = false;
+  document.getElementById('judge-nolift-btn').disabled = false;
+
+  // Attach handlers (replace to avoid duplicates)
+  const goodBtn = document.getElementById('judge-good-btn');
+  const noBtn   = document.getElementById('judge-nolift-btn');
+  goodBtn.onclick = () => submitResult(current, 1);
+  noBtn.onclick   = () => submitResult(current, 0);
+}
+
+async function submitResult(athlete, result) {
+  document.getElementById('judge-good-btn').disabled = true;
+  document.getElementById('judge-nolift-btn').disabled = true;
+  const feedbackEl = document.getElementById('judge-feedback');
+  feedbackEl.textContent = result === 1 ? '✓ Good Lift recorded' : '✗ No Lift recorded';
+  feedbackEl.style.color = result === 1 ? '#27ae60' : '#c0392b';
+  try {
+    await apiFetch(`/api/comp/${_compId}/result`, {
+      method: 'POST',
+      body: JSON.stringify({ athlete_id: athlete.id, lift: _compData.comp.cur_lift, attempt_num: _compData.comp.cur_attempt, result })
+    });
+    setTimeout(refreshJudgeView, 500);
+  } catch (e) {
+    alert('Failed to record result: ' + e.message);
+    document.getElementById('judge-good-btn').disabled = false;
+    document.getElementById('judge-nolift-btn').disabled = false;
+  }
+}
+
+// Stop polling when leaving judge page
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-nav]') && e.target.closest('[data-nav]').dataset.nav !== 'comp-judge') {
+    clearInterval(_judgePolling);
+  }
+});
+
+function navigateTo(page) { navigate(page); }
+
+function escHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}

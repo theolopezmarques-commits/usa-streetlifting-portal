@@ -19,6 +19,7 @@ const eventsRoutes = require('./routes/events');
 const stripeWebhook = require('./routes/stripeWebhook');
 const chatRoutes = require('./routes/chat');
 const compHistoryRoutes = require('./routes/compHistory');
+const compRoutes = require('./routes/comp');
 const authMiddleware = require('./middleware/auth');
 
 const app = express();
@@ -106,6 +107,13 @@ app.use('/api/course', authMiddleware, courseRoutes);
 app.use('/api/certificate', authMiddleware, certificateRoutes);
 app.use('/api/chat', authMiddleware, chatRoutes);
 app.use('/api/comp-history', authMiddleware, compHistoryRoutes);
+
+// Comp: SSE stream is public (no auth); all other routes require auth
+app.use('/api/comp', (req, res, next) => {
+  if (req.method === 'GET' && (req.path.endsWith('/stream') || req.path.endsWith('/public'))) return next();
+  authMiddleware(req, res, next);
+}, compRoutes);
+compRoutes.setBroadcast(compRoutes._broadcast);
 
 // Public listing (GET /api/events) is unauthenticated; register/unregister/my require auth
 app.use('/api/events', (req, res, next) => {
