@@ -1879,20 +1879,15 @@ async function loadAdminQuestions() {
   try {
     const { questions } = await apiFetch('/api/admin/questions');
 
-    const LEVEL0_IDS = new Set([0,1,2,3,4,5,6,7,22,23,24,25,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47,48,49,60,61,62,63,64,65,66,67,68,69]);
+    const LEVEL0_IDS = new Set([0,1,2,3,4,5,6,7,22,23,24,25,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47,48,49,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74]);
     const CATEGORIES = [
-      { name: 'General Rules & Judging System', start: 0, end: 7 },
-      { name: 'Ring Muscle-Up', start: 8, end: 15 },
-      { name: 'Bar Muscle-Up', start: 16, end: 21 },
-      { name: 'Pull-Ups', start: 22, end: 27 },
-      { name: 'Dips', start: 28, end: 33 },
-      { name: 'Squats', start: 34, end: 40 },
-      { name: 'Safety & Competition Rules', start: 41, end: 49 },
-      { name: 'Ring Muscle-Up — Judge Roles & Card Colors', start: 50, end: 54 },
-      { name: 'Bar Muscle-Up — Judge Roles & Card Colors', start: 55, end: 59 },
-      { name: 'Pull — Judge Roles & Card Colors', start: 60, end: 64 },
-      { name: 'Dip — Judge Roles & Card Colors', start: 65, end: 69 },
-      { name: 'Squat — Judge Roles & Card Colors', start: 70, end: 74 },
+      { name: 'General Rules & Judging System', ids: [0,1,2,3,4,5,6,7] },
+      { name: 'Safety & Competition Rules', ids: [41,42,43,44,45,46,47,48,49] },
+      { name: 'Ring Muscle-Up', ids: [8,9,10,11,12,13,14,15, 50,51,52,53,54] },
+      { name: 'Bar Muscle-Up', ids: [16,17,18,19,20,21, 55,56,57,58,59] },
+      { name: 'Pull-Ups', ids: [22,23,24,25,26,27, 60,61,62,63,64] },
+      { name: 'Dips', ids: [28,29,30,31,32,33, 65,66,67,68,69] },
+      { name: 'Squats', ids: [34,35,36,37,38,39,40, 70,71,72,73,74] },
     ];
 
     let html = `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.5rem;">Click <strong style="color:#fff;">Edit</strong> on any question to change its text, options, or correct answer. Level badges show which exams include the question.</p>`;
@@ -1901,7 +1896,7 @@ async function loadAdminQuestions() {
       html += `<div class="course-section-card" style="margin-bottom:1.5rem;">
         <h3 style="margin-bottom:1rem;">${escapeHtml(cat.name)}</h3>`;
 
-      for (let i = cat.start; i <= cat.end; i++) {
+      cat.ids.forEach(i => {
         const q = questions[i];
         if (!q) continue;
         const levelBadge = LEVEL0_IDS.has(i)
@@ -1954,7 +1949,7 @@ async function loadAdminQuestions() {
             </div>
           </div>
         </div>`;
-      }
+      });
       html += '</div>';
     });
 
