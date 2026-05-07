@@ -3,14 +3,24 @@ const { dbRun, dbGet, dbAll } = require('../db');
 const router = express.Router();
 
 function getAllQuestions() {
-  const rows = dbAll('SELECT id, q, options, answer FROM exam_questions ORDER BY id', []);
-  return rows.map(r => ({ q: r.q, options: JSON.parse(r.options), answer: r.answer }));
+  const rows = dbAll('SELECT id, q, options, answer, type, answers FROM exam_questions ORDER BY id', []);
+  return rows.map(r => ({
+    q: r.q,
+    options: JSON.parse(r.options),
+    answer: r.answer,
+    type: r.type || 'single',
+    answers: r.answers ? JSON.parse(r.answers) : null,
+  }));
 }
 
 // Question indices per level (answers kept server-side)
 const LEVEL_QUESTION_INDICES = {
-  0: [0,1,2,3,4,5,6,7, 22,23,24,25,26,27, 28,29,30,31,32,33, 41,42,43,44,45,46,47,48,49],
-  1: Array.from({ length: 50 }, (_, i) => i),
+  0: [0,1,2,3,4,5,6,7, 22,23,24,25,26,27, 28,29,30,31,32,33, 41,42,43,44,45,46,47,48,49, 60,61,62,63,64, 65,66,67,68,69],
+  1: [
+    ...Array.from({ length: 10 }, (_, i) => i),      // 0-9
+    ...Array.from({ length: 39 }, (_, i) => i + 11), // 11-49 (index 10 removed)
+    ...Array.from({ length: 25 }, (_, i) => i + 50), // 50-74
+  ],
 };
 LEVEL_QUESTION_INDICES[2] = LEVEL_QUESTION_INDICES[1];
 
@@ -162,6 +172,7 @@ router.get('/exam-questions', (req, res) => {
     index: i,
     question: allQ[qi].q,
     options: allQ[qi].options,
+    type: allQ[qi].type || 'single',
   }));
 
   res.json({ questions, total: questions.length, pass_threshold: 80 });
@@ -189,7 +200,14 @@ router.post('/submit-exam', (req, res) => {
   const allQ = getAllQuestions();
   let correct = 0;
   answers.forEach((ans, i) => {
-    if (ans === allQ[indices[i]].answer) correct++;
+    const q = allQ[indices[i]];
+    if (q.type === 'multi') {
+      const selected = Array.isArray(ans) ? [...ans].sort((a, b) => a - b) : [];
+      const expected = [...(q.answers || [])].sort((a, b) => a - b);
+      if (JSON.stringify(selected) === JSON.stringify(expected)) correct++;
+    } else {
+      if (ans === q.answer) correct++;
+    }
   });
 
   const score   = Math.round((correct / indices.length) * 100);

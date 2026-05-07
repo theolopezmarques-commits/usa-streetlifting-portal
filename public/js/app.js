@@ -1879,7 +1879,7 @@ async function loadAdminQuestions() {
   try {
     const { questions } = await apiFetch('/api/admin/questions');
 
-    const LEVEL0_IDS = new Set([0,1,2,3,4,5,6,7,22,23,24,25,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47,48,49]);
+    const LEVEL0_IDS = new Set([0,1,2,3,4,5,6,7,22,23,24,25,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47,48,49,60,61,62,63,64,65,66,67,68,69]);
     const CATEGORIES = [
       { name: 'General Rules & Judging System', start: 0, end: 7 },
       { name: 'Ring Muscle-Up', start: 8, end: 15 },
@@ -1888,6 +1888,11 @@ async function loadAdminQuestions() {
       { name: 'Dips', start: 28, end: 33 },
       { name: 'Squats', start: 34, end: 40 },
       { name: 'Safety & Competition Rules', start: 41, end: 49 },
+      { name: 'Ring Muscle-Up — Judge Roles & Card Colors', start: 50, end: 54 },
+      { name: 'Bar Muscle-Up — Judge Roles & Card Colors', start: 55, end: 59 },
+      { name: 'Pull — Judge Roles & Card Colors', start: 60, end: 64 },
+      { name: 'Dip — Judge Roles & Card Colors', start: 65, end: 69 },
+      { name: 'Squat — Judge Roles & Card Colors', start: 70, end: 74 },
     ];
 
     let html = `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.5rem;">Click <strong style="color:#fff;">Edit</strong> on any question to change its text, options, or correct answer. Level badges show which exams include the question.</p>`;
@@ -1914,26 +1919,37 @@ async function loadAdminQuestions() {
               </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .75rem;">
-              ${q.options.map((opt, oi) => `
-                <span style="font-size:.82rem;${oi === q.answer ? 'color:#4cd964;font-weight:600;' : 'color:rgba(255,255,255,.45);'}">
-                  ${oi === q.answer ? '✓' : '○'} ${escapeHtml(opt)}
-                </span>`).join('')}
+              ${q.options.map((opt, oi) => {
+                const isCorrect = q.type === 'multi'
+                  ? (Array.isArray(q.answers) && q.answers.includes(oi))
+                  : oi === q.answer;
+                return `<span style="font-size:.82rem;${isCorrect ? 'color:#4cd964;font-weight:600;' : 'color:rgba(255,255,255,.45);'}">
+                  ${isCorrect ? '✓' : '○'} ${escapeHtml(opt)}
+                </span>`;
+              }).join('')}
             </div>
+            ${q.type === 'multi' ? '<span style="font-size:.72rem;color:var(--clr-primary);display:block;margin-top:.4rem;">Select all that apply</span>' : ''}
           </div>
           <div class="q-edit" style="display:none;">
             <div style="margin-bottom:.75rem;">
               <label style="font-size:.82rem;color:var(--clr-muted);">Question text</label>
               <textarea class="q-text" rows="2" style="width:100%;margin-top:.3rem;padding:.5rem;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-size:.9rem;resize:vertical;min-height:58px;box-sizing:border-box;">${escapeHtml(q.q)}</textarea>
             </div>
-            <div style="margin-bottom:.5rem;font-size:.82rem;color:var(--clr-muted);">Options — select the radio button next to the correct answer:</div>
-            ${q.options.map((opt, oi) => `
-              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
-                <input type="radio" name="correct-${i}" value="${oi}" ${oi === q.answer ? 'checked' : ''} style="cursor:pointer;flex-shrink:0;">
+            <div style="margin-bottom:.5rem;font-size:.82rem;color:var(--clr-muted);">${q.type === 'multi' ? 'Options — check all correct answers:' : 'Options — select the radio button next to the correct answer:'}</div>
+            ${q.options.map((opt, oi) => {
+              const isCorrect = q.type === 'multi'
+                ? (Array.isArray(q.answers) && q.answers.includes(oi))
+                : oi === q.answer;
+              return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
+                ${q.type === 'multi'
+                  ? `<input type="checkbox" name="correct-${i}" value="${oi}" ${isCorrect ? 'checked' : ''} style="cursor:pointer;flex-shrink:0;">`
+                  : `<input type="radio" name="correct-${i}" value="${oi}" ${isCorrect ? 'checked' : ''} style="cursor:pointer;flex-shrink:0;">`}
                 <input type="text" class="q-opt" data-opt="${oi}" value="${escapeAttr(opt)}" style="flex:1;padding:.35rem .5rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.85rem;">
                 <span style="font-size:.75rem;color:var(--clr-muted);width:1rem;">${['A','B','C','D'][oi]}</span>
-              </div>`).join('')}
+              </div>`;
+            }).join('')}
             <div style="display:flex;gap:.5rem;margin-top:.85rem;">
-              <button class="q-save-btn btn-grant" data-qid="${i}" style="font-size:.8rem;padding:.35rem .9rem;">Save</button>
+              <button class="q-save-btn btn-grant" data-qid="${i}" data-qtype="${q.type || 'single'}" style="font-size:.8rem;padding:.35rem .9rem;">Save</button>
               <button class="q-cancel-btn" data-qid="${i}" style="font-size:.8rem;padding:.35rem .9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;">Cancel</button>
             </div>
           </div>
@@ -1963,14 +1979,23 @@ async function loadAdminQuestions() {
     container.querySelectorAll('.q-save-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const qid = parseInt(btn.dataset.qid);
+        const qType = btn.dataset.qtype || 'single';
         const card = btn.closest('.q-card');
         const qText = card.querySelector('.q-text').value.trim();
         const options = Array.from(card.querySelectorAll('.q-opt')).map(inp => inp.value.trim());
-        const answerEl = card.querySelector(`input[name="correct-${qid}"]:checked`);
-        const answer = answerEl ? parseInt(answerEl.value) : 0;
         if (!qText || options.some(o => !o)) { showToast('All fields are required.', 'error'); return; }
+        let payload;
+        if (qType === 'multi') {
+          const checked = Array.from(card.querySelectorAll(`input[name="correct-${qid}"]:checked`)).map(el => parseInt(el.value));
+          if (checked.length === 0) { showToast('Select at least one correct answer.', 'error'); return; }
+          payload = { q: qText, options, type: 'multi', answers: checked };
+        } else {
+          const answerEl = card.querySelector(`input[name="correct-${qid}"]:checked`);
+          const answer = answerEl ? parseInt(answerEl.value) : 0;
+          payload = { q: qText, options, type: 'single', answer };
+        }
         try {
-          await apiFetch(`/api/admin/questions/${qid}`, { method: 'PUT', body: JSON.stringify({ q: qText, options, answer }) });
+          await apiFetch(`/api/admin/questions/${qid}`, { method: 'PUT', body: JSON.stringify(payload) });
           showToast('Question saved.', 'success');
           loadAdminQuestions();
         } catch (err) { showToast(err.message, 'error'); }
@@ -2694,7 +2719,7 @@ async function loadExam(level) {
   try {
     const { questions, total, pass_threshold } = await apiFetch(`/api/course/exam-questions?level=${level}`);
 
-    let userAnswers = new Array(total).fill(null);
+    let userAnswers = questions.map(q => q.type === 'multi' ? [] : null);
 
     function renderExam() {
       ui.innerHTML = `
@@ -2706,14 +2731,17 @@ async function loadExam(level) {
         <div class="exam-questions" id="exam-questions-${level}">
           ${questions.map((q, i) => `
             <div class="exam-question" id="eq-${level}-${i}">
-              <p class="exam-q-text"><strong>${i + 1}.</strong> ${escapeHtml(q.question)}</p>
+              <p class="exam-q-text"><strong>${i + 1}.</strong> ${escapeHtml(q.question)}${q.type === 'multi' ? '<span style="font-size:.75rem;color:var(--clr-primary);margin-left:.5rem;font-weight:600;">(select all that apply)</span>' : ''}</p>
               <div class="exam-options">
-                ${q.options.map((opt, oi) => `
-                  <label class="exam-option ${userAnswers[i] === oi ? 'selected' : ''}" data-qi="${i}" data-oi="${oi}">
-                    <span class="exam-option-letter">${String.fromCharCode(65 + oi)}</span>
+                ${q.options.map((opt, oi) => {
+                  const isSel = q.type === 'multi'
+                    ? (Array.isArray(userAnswers[i]) && userAnswers[i].includes(oi))
+                    : userAnswers[i] === oi;
+                  return `<label class="exam-option ${isSel ? 'selected' : ''}" data-qi="${i}" data-oi="${oi}" data-type="${q.type || 'single'}">
+                    <span class="exam-option-letter">${q.type === 'multi' ? '☐' : String.fromCharCode(65 + oi)}</span>
                     <span>${escapeHtml(opt)}</span>
-                  </label>
-                `).join('')}
+                  </label>`;
+                }).join('')}
               </div>
             </div>
           `).join('')}
@@ -2726,19 +2754,37 @@ async function loadExam(level) {
         </div>
       `;
 
+      function countAnswered() {
+        return userAnswers.filter(a => a !== null && !(Array.isArray(a) && a.length === 0)).length;
+      }
+
       // Option click handler
       ui.querySelectorAll('.exam-option').forEach(label => {
         label.addEventListener('click', () => {
           const qi = parseInt(label.dataset.qi);
           const oi = parseInt(label.dataset.oi);
-          userAnswers[qi] = oi;
+          const qType = label.dataset.type;
 
-          // Update visuals for this question
-          ui.querySelectorAll(`[data-qi="${qi}"]`).forEach(l => l.classList.remove('selected'));
-          label.classList.add('selected');
+          if (qType === 'multi') {
+            const cur = userAnswers[qi];
+            const idx = cur.indexOf(oi);
+            if (idx === -1) {
+              userAnswers[qi] = [...cur, oi].sort((a, b) => a - b);
+              label.classList.add('selected');
+              label.querySelector('.exam-option-letter').textContent = '☑';
+            } else {
+              userAnswers[qi] = cur.filter(x => x !== oi);
+              label.classList.remove('selected');
+              label.querySelector('.exam-option-letter').textContent = '☐';
+            }
+          } else {
+            userAnswers[qi] = oi;
+            ui.querySelectorAll(`[data-qi="${qi}"]`).forEach(l => l.classList.remove('selected'));
+            label.classList.add('selected');
+          }
 
           // Update progress
-          const answered = userAnswers.filter(a => a !== null).length;
+          const answered = countAnswered();
           const prog = document.getElementById(`exam-progress-${level}`);
           if (prog) prog.textContent = `${answered} / ${total} answered`;
 
@@ -2750,7 +2796,7 @@ async function loadExam(level) {
 
       // Submit handler
       document.getElementById(`exam-submit-btn-${level}`)?.addEventListener('click', async () => {
-        if (userAnswers.some(a => a === null)) {
+        if (userAnswers.some(a => a === null || (Array.isArray(a) && a.length === 0))) {
           showToast('Please answer all questions before submitting.', 'error');
           return;
         }

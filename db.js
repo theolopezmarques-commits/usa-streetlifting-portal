@@ -288,6 +288,9 @@ async function initDb() {
       answer  INTEGER NOT NULL
     )
   `);
+  try { db.run("ALTER TABLE exam_questions ADD COLUMN type TEXT NOT NULL DEFAULT 'single'"); } catch {}
+  try { db.run('ALTER TABLE exam_questions ADD COLUMN answers TEXT'); } catch {}
+
   const _qCount = db.exec('SELECT COUNT(*) FROM exam_questions');
   const _isEmpty = !_qCount.length || _qCount[0].values[0][0] === 0;
   if (_isEmpty) {
@@ -348,6 +351,48 @@ async function initDb() {
         [i, q.q, JSON.stringify(q.options), q.answer]);
     });
   }
+
+  // Seed judge-responsibility and card-color questions (indices 50-74); INSERT OR IGNORE so safe on re-run
+  const _JUDGE_Q = [
+    // Ring Muscle Up (50-54)
+    { id: 50, q: 'For a ring muscle-up, what is the front judge responsible for? (Select all that apply)', options: ['Detecting a chicken wing (one ring at a time)','Giving "Go!" and "Box!" signals','Equipment check and start position','Verifying arm lockout at the top'], type: 'multi', answers: [0,1,2] },
+    { id: 51, q: 'For a ring muscle-up, what are the side judges (B & C) responsible for? (Select all that apply)', options: ['Verifying arm lockout (full elbow extension)','Detecting kipping or excessive leg drive','Detecting chicken wing','Checking for downward motion during the concentric phase'], type: 'multi', answers: [0,1,3] },
+    { id: 52, q: 'What card color is shown for a chicken wing in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 53, q: 'What card color is shown for kipping/kicking in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 54, q: 'What card color is shown for incomplete lockout (elbows not fully extended at top) in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // Bar Muscle Up (55-59)
+    { id: 55, q: 'For a bar muscle-up, what is the front judge responsible for? (Select all that apply)', options: ['Detecting a chicken wing (one elbow at a time)','Giving "Go!" and "Box!" signals','Equipment check and start position','Verifying arm lockout at the top'], type: 'multi', answers: [0,1,2] },
+    { id: 56, q: 'For a bar muscle-up, what are the side judges (B & C) responsible for? (Select all that apply)', options: ['Full arm lockout (180° elbow extension)','Kipping or excessive leg drive','Grip violation (wrist or forearm touching bar)','Chicken wing detection'], type: 'multi', answers: [0,1,2] },
+    { id: 57, q: 'What card color is shown for a chicken wing in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 58, q: 'What card color is shown for kipping/kicking in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 59, q: 'What card color is shown for a grip violation (wrist/forearm touching bar) in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // Pull (60-64)
+    { id: 60, q: 'For a pull (pull-up/chin-up), what is the front judge responsible for? (Select all that apply)', options: ['Giving "Go!" and "Box!" signals','Equipment check and start position','Verifying chin height above the bar','Detecting kipping or kicking'], type: 'multi', answers: [0,1] },
+    { id: 61, q: 'For a pull, what are the side judges (B & C) responsible for? (Select all that apply)', options: ['Verifying chin is clearly above the bar','Detecting kipping or excessive leg drive','Giving the start signal','Checking for a full dead-hang start position'], type: 'multi', answers: [0,1,3] },
+    { id: 62, q: 'What card color is shown for invalid chin height in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 63, q: 'What card color is shown for kicking/kipping in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 64, q: 'What card color is shown for downward motion before chin clears the bar in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // Dip (65-69)
+    { id: 65, q: 'For a dip, what is the front judge responsible for? (Select all that apply)', options: ['Giving "Go!" and "Box!" signals','Equipment check and start position','Verifying shoulder depth below the elbow line','Detecting kipping or leg drive'], type: 'multi', answers: [0,1] },
+    { id: 66, q: 'For a dip, what are the side judges (B & C) responsible for? (Select all that apply)', options: ['Verifying shoulder depth below the elbow line','Detecting kipping or loss of control','Giving the start signal','Checking full arm extension at start and finish'], type: 'multi', answers: [0,1,3] },
+    { id: 67, q: 'What card color is shown for invalid depth (shoulder not below elbow line) in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 68, q: 'What card color is shown for kipping/kicking in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 69, q: 'What card color is shown for downward motion in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // Squat (70-74)
+    { id: 70, q: 'For a squat, what is the front judge responsible for? (Select all that apply)', options: ['Giving "Squat!" and "Rack!" commands','Equipment check and start position','Verifying hip crease depth below knee line','Detecting illegal foot movement'], type: 'multi', answers: [0,1] },
+    { id: 71, q: 'For a squat, what are the side judges (B & C) responsible for? (Select all that apply)', options: ['Verifying hip crease depth below knee line','Detecting downward motion or double bounce','Giving the "Squat!" command','Checking for illegal foot movement'], type: 'multi', answers: [0,1,3] },
+    { id: 72, q: 'What card color is shown for invalid depth (hip crease not below knee line) in a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 73, q: 'What card color is shown for support (elbows resting on thighs) in a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 74, q: 'What card color is shown for contact by a spotter during a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+  ];
+  _JUDGE_Q.forEach(q => {
+    db.run(
+      'INSERT OR IGNORE INTO exam_questions (id, q, options, type, answers, answer) VALUES (?, ?, ?, ?, ?, ?)',
+      [q.id, q.q, JSON.stringify(q.options), q.type,
+       q.type === 'multi' ? JSON.stringify(q.answers) : null,
+       q.type === 'single' ? q.answer : -1]
+    );
+  });
 
   // Security indexes
   db.run('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
