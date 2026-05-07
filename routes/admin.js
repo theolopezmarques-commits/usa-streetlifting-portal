@@ -620,7 +620,7 @@ router.put('/questions/:id', requireAdmin, (req, res) => {
   const id = parseInt(req.params.id);
   const { q, options, answer, type, answers } = req.body;
   const qType = type === 'multi' ? 'multi' : 'single';
-  if (!q || !Array.isArray(options) || options.length !== 4) {
+  if (!q || !Array.isArray(options) || options.length < 2 || options.length > 10) {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
   if (qType === 'single') {
