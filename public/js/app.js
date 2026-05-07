@@ -1517,6 +1517,7 @@ async function loadAdmin() {
       <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.5rem;">
         <button id="tab-users-btn" data-admin-tab="users" class="btn-grant" style="font-size:.85rem;padding:.4rem 1rem;">👥 Users</button>
         <button id="tab-exams-btn" data-admin-tab="exams" style="font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;">📝 Course Progress & Exams</button>
+        <button id="tab-questions-btn" data-admin-tab="questions" style="font-size:.85rem;padding:.4rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;">✏️ Exam Questions</button>
       </div>
 
       <!-- Users tab -->
@@ -1561,6 +1562,11 @@ async function loadAdmin() {
       <!-- Exams tab -->
       <div id="admin-tab-exams" style="display:none;">
         <div id="exam-results-content"><p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading exam results…</p></div>
+      </div>
+
+      <!-- Questions tab -->
+      <div id="admin-tab-questions" style="display:none;">
+        <div id="admin-questions-content"><p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading questions…</p></div>
       </div>
     `;
 
@@ -1798,7 +1804,7 @@ async function loadAdmin() {
 }
 
 function showAdminTab(tab) {
-  ['users','exams'].forEach(t => {
+  ['users','exams','questions'].forEach(t => {
     const el = document.getElementById(`admin-tab-${t}`);
     const btn = document.getElementById(`tab-${t}-btn`);
     if (el) el.style.display = t === tab ? '' : 'none';
@@ -1808,6 +1814,7 @@ function showAdminTab(tab) {
     }
   });
   if (tab === 'exams') loadCourseProgress();
+  if (tab === 'questions') loadAdminQuestions();
 }
 
 async function loadCourseProgress() {
@@ -1863,6 +1870,116 @@ async function loadCourseProgress() {
         </table>
       </div>`;
   } catch (err) { container.innerHTML = `<p style="color:#f87171;text-align:center;padding:2rem;">${escapeHtml(err.message)}</p>`; }
+}
+
+async function loadAdminQuestions() {
+  const container = document.getElementById('admin-questions-content');
+  if (!container) return;
+  container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading…</p>';
+  try {
+    const { questions } = await apiFetch('/api/admin/questions');
+
+    const LEVEL0_IDS = new Set([0,1,2,3,4,5,6,7,22,23,24,25,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47,48,49]);
+    const CATEGORIES = [
+      { name: 'General Rules & Judging System', start: 0, end: 7 },
+      { name: 'Ring Muscle-Up', start: 8, end: 15 },
+      { name: 'Bar Muscle-Up', start: 16, end: 21 },
+      { name: 'Pull-Ups', start: 22, end: 27 },
+      { name: 'Dips', start: 28, end: 33 },
+      { name: 'Squats', start: 34, end: 40 },
+      { name: 'Safety & Competition Rules', start: 41, end: 49 },
+    ];
+
+    let html = `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.5rem;">Click <strong style="color:#fff;">Edit</strong> on any question to change its text, options, or correct answer. Level badges show which exams include the question.</p>`;
+
+    CATEGORIES.forEach(cat => {
+      html += `<div class="course-section-card" style="margin-bottom:1.5rem;">
+        <h3 style="margin-bottom:1rem;">${escapeHtml(cat.name)}</h3>`;
+
+      for (let i = cat.start; i <= cat.end; i++) {
+        const q = questions[i];
+        if (!q) continue;
+        const levelBadge = LEVEL0_IDS.has(i)
+          ? '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(76,217,100,.15);color:#4cd964;margin-left:.5rem;white-space:nowrap;">L0 + L1</span>'
+          : '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);margin-left:.5rem;white-space:nowrap;">L1 only</span>';
+
+        html += `
+        <div class="q-card" data-qid="${i}" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:1rem;margin-bottom:.75rem;">
+          <div class="q-view">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.6rem;">
+              <span style="font-weight:600;font-size:.92rem;">${escapeHtml(q.q)}</span>
+              <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+                ${levelBadge}
+                <button class="q-edit-btn" data-qid="${i}" style="font-size:.75rem;padding:.3rem .7rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#fff;cursor:pointer;">Edit</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .75rem;">
+              ${q.options.map((opt, oi) => `
+                <span style="font-size:.82rem;${oi === q.answer ? 'color:#4cd964;font-weight:600;' : 'color:rgba(255,255,255,.45);'}">
+                  ${oi === q.answer ? '✓' : '○'} ${escapeHtml(opt)}
+                </span>`).join('')}
+            </div>
+          </div>
+          <div class="q-edit" style="display:none;">
+            <div style="margin-bottom:.75rem;">
+              <label style="font-size:.82rem;color:var(--clr-muted);">Question text</label>
+              <textarea class="q-text" rows="2" style="width:100%;margin-top:.3rem;padding:.5rem;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-size:.9rem;resize:vertical;min-height:58px;box-sizing:border-box;">${escapeHtml(q.q)}</textarea>
+            </div>
+            <div style="margin-bottom:.5rem;font-size:.82rem;color:var(--clr-muted);">Options — select the radio button next to the correct answer:</div>
+            ${q.options.map((opt, oi) => `
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
+                <input type="radio" name="correct-${i}" value="${oi}" ${oi === q.answer ? 'checked' : ''} style="cursor:pointer;flex-shrink:0;">
+                <input type="text" class="q-opt" data-opt="${oi}" value="${escapeAttr(opt)}" style="flex:1;padding:.35rem .5rem;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#fff;font-size:.85rem;">
+                <span style="font-size:.75rem;color:var(--clr-muted);width:1rem;">${['A','B','C','D'][oi]}</span>
+              </div>`).join('')}
+            <div style="display:flex;gap:.5rem;margin-top:.85rem;">
+              <button class="q-save-btn btn-grant" data-qid="${i}" style="font-size:.8rem;padding:.35rem .9rem;">Save</button>
+              <button class="q-cancel-btn" data-qid="${i}" style="font-size:.8rem;padding:.35rem .9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;cursor:pointer;">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+      }
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.q-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.q-card');
+        card.querySelector('.q-view').style.display = 'none';
+        card.querySelector('.q-edit').style.display = '';
+      });
+    });
+
+    container.querySelectorAll('.q-cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.q-card');
+        card.querySelector('.q-view').style.display = '';
+        card.querySelector('.q-edit').style.display = 'none';
+      });
+    });
+
+    container.querySelectorAll('.q-save-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const qid = parseInt(btn.dataset.qid);
+        const card = btn.closest('.q-card');
+        const qText = card.querySelector('.q-text').value.trim();
+        const options = Array.from(card.querySelectorAll('.q-opt')).map(inp => inp.value.trim());
+        const answerEl = card.querySelector(`input[name="correct-${qid}"]:checked`);
+        const answer = answerEl ? parseInt(answerEl.value) : 0;
+        if (!qText || options.some(o => !o)) { showToast('All fields are required.', 'error'); return; }
+        try {
+          await apiFetch(`/api/admin/questions/${qid}`, { method: 'PUT', body: JSON.stringify({ q: qText, options, answer }) });
+          showToast('Question saved.', 'success');
+          loadAdminQuestions();
+        } catch (err) { showToast(err.message, 'error'); }
+      });
+    });
+
+  } catch (err) {
+    container.innerHTML = `<p style="color:#f87171;text-align:center;padding:2rem;">${escapeHtml(err.message)}</p>`;
+  }
 }
 
 function renderPaymentSection(user) {

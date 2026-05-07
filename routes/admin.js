@@ -604,4 +604,26 @@ router.delete('/delete-payment/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/admin/questions — all exam questions
+router.get('/questions', requireAdmin, (req, res) => {
+  const rows = dbAll('SELECT id, q, options, answer FROM exam_questions ORDER BY id', []);
+  const questions = rows.map(r => ({ id: r.id, q: r.q, options: JSON.parse(r.options), answer: r.answer }));
+  res.json({ questions });
+});
+
+// PUT /api/admin/questions/:id — update a single question
+router.put('/questions/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+  const { q, options, answer } = req.body;
+  if (!q || !Array.isArray(options) || options.length !== 4 || typeof answer !== 'number' || answer < 0 || answer > 3) {
+    return res.status(400).json({ error: 'Invalid payload.' });
+  }
+  const result = dbRun(
+    'UPDATE exam_questions SET q=?, options=?, answer=? WHERE id=?',
+    [q.trim(), JSON.stringify(options.map(o => String(o).trim())), answer, id]
+  );
+  if (result.changes === 0) return res.status(404).json({ error: 'Question not found.' });
+  res.json({ success: true });
+});
+
 module.exports = router;
