@@ -1898,7 +1898,7 @@ async function loadAdminQuestions() {
 
       cat.ids.forEach(i => {
         const q = questions[i];
-        if (!q) continue;
+        if (!q) return;
         const levelBadge = LEVEL0_IDS.has(i)
           ? '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(76,217,100,.15);color:#4cd964;margin-left:.5rem;white-space:nowrap;">L0 + L1</span>'
           : '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);margin-left:.5rem;white-space:nowrap;">L1 only</span>';
