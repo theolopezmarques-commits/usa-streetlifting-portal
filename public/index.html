@@ -1007,19 +1007,7 @@
   <script>
     function downloadRulebook(e) {
       e.preventDefault();
-      fetch('/USASL-Rulebook-V7.pdf')
-        .then(r => r.blob())
-        .then(blob => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'USASL-Rulebook-V7.pdf';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        })
-        .catch(() => { window.location.href = '/download-rulebook'; });
+      window.open('/download-rulebook', '_blank');
     }
   </script>
 </body>
