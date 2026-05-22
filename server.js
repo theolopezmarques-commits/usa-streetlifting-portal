@@ -88,6 +88,10 @@ const authLimiter = rateLimit({
 });
 
 // --------------- Static files ---------------
+app.get('/USASL-Rulebook-V7.pdf', (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="USASL-Rulebook-V7.pdf"');
+  res.sendFile(path.join(__dirname, 'public', 'USASL-Rulebook-V7.pdf'));
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve avatars from volume in production, fallback to public/avatars locally
