@@ -89,8 +89,10 @@ const authLimiter = rateLimit({
 
 // --------------- Static files ---------------
 app.get('/download-rulebook', (req, res) => {
-  res.setHeader('Content-Disposition', 'attachment; filename="USASL-Rulebook-V7.pdf"');
-  res.sendFile(path.join(__dirname, 'public', 'USASL-Rulebook-V7.pdf'));
+  const file = path.join(__dirname, 'public', 'USASL-Rulebook-V7.pdf');
+  res.download(file, 'USASL-Rulebook-V7.pdf', (err) => {
+    if (err && !res.headersSent) res.status(404).send('Rulebook not found');
+  });
 });
 app.use(express.static(path.join(__dirname, 'public')));
 
