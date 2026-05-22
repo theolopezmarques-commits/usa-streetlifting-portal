@@ -88,7 +88,7 @@ const authLimiter = rateLimit({
 });
 
 // --------------- Static files ---------------
-app.get('/USASL-Rulebook-V7.pdf', (req, res) => {
+app.get('/download-rulebook', (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="USASL-Rulebook-V7.pdf"');
   res.sendFile(path.join(__dirname, 'public', 'USASL-Rulebook-V7.pdf'));
 });
