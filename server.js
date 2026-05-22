@@ -41,11 +41,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://usastreetlifting.org"],
-      connectSrc: ["'self'", "https://usastreetlifting.org", "https://calendar.app.google"],
+      connectSrc: ["'self'", "https://usastreetlifting.org", "https://calendar.app.google", "https://cloudflareinsights.com"],
       frameSrc: ["'self'", "blob:"],
       mediaSrc: ["'self'", "https://pub-be06f36754244e97924aad36ac6257af.r2.dev"],
       // Disable HTTPS upgrade locally — the dev server runs on HTTP

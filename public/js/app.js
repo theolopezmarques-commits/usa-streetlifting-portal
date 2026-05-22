@@ -1878,16 +1878,27 @@ async function loadAdminQuestions() {
   container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading…</p>';
   try {
     const { questions } = await apiFetch('/api/admin/questions');
+    const qById = Object.fromEntries(questions.map(q => [q.id, q]));
 
-    const LEVEL0_IDS = new Set([0,1,2,3,4,5,6,7,22,23,24,25,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47,48,49,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74]);
+    const LEVEL0_IDS = new Set([
+      0,1,2,3,4,5,6,7,
+      22,23,24,25,26,27,
+      28,29,30,31,32,33,
+      41,42,43,44,45,46,47,48,
+      99,100,101,102,103,
+      104,105,106,107,108,
+      109,110,111,112,113,114,
+      115,116,125,117,118,119,
+      120,121,122,123,124,
+    ]);
     const CATEGORIES = [
       { name: 'General Rules & Judging System', ids: [0,1,2,3,4,5,6,7] },
-      { name: 'Safety & Competition Rules', ids: [41,42,43,44,45,46,47,48,49] },
-      { name: 'Ring Muscle-Up', ids: [8,9,10,11,12,13,14,15, 50,51,52,53,54] },
-      { name: 'Bar Muscle-Up', ids: [16,17,18,19,20,21, 55,56,57,58,59] },
-      { name: 'Pull-Ups', ids: [22,23,24,25,26,27, 60,61,62,63,64] },
-      { name: 'Dips', ids: [28,29,30,31,32,33, 65,66,67,68,69] },
-      { name: 'Squats', ids: [34,35,36,37,38,39,40, 70,71,72,73,74] },
+      { name: 'Safety & Competition Rules', ids: [41,42,43,44,45,46,47,48] },
+      { name: 'Ring Muscle-Up', ids: [8,9,10,11,12,13,14,15, 99,100,101,102,103] },
+      { name: 'Bar Muscle-Up', ids: [16,17,18,19,20,21, 104,105,106,107,108] },
+      { name: 'Pull-Ups', ids: [22,23,24,25,26,27, 109,110,111,112,113,114] },
+      { name: 'Dips', ids: [28,29,30,31,32,33, 115,116,125,117,118,119] },
+      { name: 'Squats', ids: [34,35,36,37,38,39,40, 120,121,122,123,124] },
     ];
 
     let html = `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.5rem;">Click <strong style="color:#fff;">Edit</strong> on any question to change its text, options, or correct answer. Level badges show which exams include the question.</p>`;
@@ -1897,7 +1908,7 @@ async function loadAdminQuestions() {
         <h3 style="margin-bottom:1rem;">${escapeHtml(cat.name)}</h3>`;
 
       cat.ids.forEach(i => {
-        const q = questions[i];
+        const q = qById[i];
         if (!q) return;
         const levelBadge = LEVEL0_IDS.has(i)
           ? '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(76,217,100,.15);color:#4cd964;margin-left:.5rem;white-space:nowrap;">L0 + L1</span>'
@@ -2717,88 +2728,120 @@ async function loadExam(level) {
     let userAnswers = questions.map(q => q.type === 'multi' ? [] : null);
 
     function renderExam() {
-      ui.innerHTML = `
-        <div class="exam-header">
-          <p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.5rem;">
-            ${total} questions · Pass mark: ${pass_threshold}% · Answers are not revealed on failure.
-          </p>
-        </div>
-        <div class="exam-questions" id="exam-questions-${level}">
-          ${questions.map((q, i) => `
-            <div class="exam-question" id="eq-${level}-${i}">
-              <p class="exam-q-text"><strong>${i + 1}.</strong> ${escapeHtml(q.question)}${q.type === 'multi' ? '<span style="font-size:.75rem;color:var(--clr-primary);margin-left:.5rem;font-weight:600;">(select all that apply)</span>' : ''}</p>
-              <div class="exam-options">
-                ${q.options.map((opt, oi) => {
-                  const isSel = q.type === 'multi'
-                    ? (Array.isArray(userAnswers[i]) && userAnswers[i].includes(oi))
-                    : userAnswers[i] === oi;
-                  return `<label class="exam-option ${isSel ? 'selected' : ''}" data-qi="${i}" data-oi="${oi}" data-type="${q.type || 'single'}">
-                    <span class="exam-option-letter">${q.type === 'multi' ? '☐' : String.fromCharCode(65 + oi)}</span>
-                    <span>${escapeHtml(opt)}</span>
-                  </label>`;
-                }).join('')}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-        <div id="exam-submit-area-${level}" style="margin-top:2rem;text-align:center;">
-          <p id="exam-progress-${level}" style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1rem;">
-            0 / ${total} answered
-          </p>
-          <button class="btn btn-primary btn-glow" id="exam-submit-btn-${level}" disabled>Submit Exam</button>
-        </div>
-      `;
+      const TIMER_SECONDS = 30;
+      let currentQ = 0;
+      let timerInterval = null;
+      let timeLeft = TIMER_SECONDS;
+      let advancing = false;
 
-      function countAnswered() {
-        return userAnswers.filter(a => a !== null && !(Array.isArray(a) && a.length === 0)).length;
+      function advance() {
+        if (advancing) return;
+        advancing = true;
+        clearInterval(timerInterval);
+        if (currentQ < questions.length - 1) {
+          currentQ++;
+          advancing = false;
+          showQuestion(currentQ);
+        } else {
+          submitExam();
+        }
       }
 
-      // Option click handler
-      ui.querySelectorAll('.exam-option').forEach(label => {
-        label.addEventListener('click', () => {
-          const qi = parseInt(label.dataset.qi);
-          const oi = parseInt(label.dataset.oi);
-          const qType = label.dataset.type;
+      function showQuestion(idx) {
+        clearInterval(timerInterval);
+        timeLeft = TIMER_SECONDS;
+        advancing = false;
+        const q = questions[idx];
+        const isMulti = q.type === 'multi';
+        const answered = userAnswers.filter(a => a !== null && !(Array.isArray(a) && a.length === 0)).length;
 
-          if (qType === 'multi') {
-            const cur = userAnswers[qi];
-            const idx = cur.indexOf(oi);
-            if (idx === -1) {
-              userAnswers[qi] = [...cur, oi].sort((a, b) => a - b);
-              label.classList.add('selected');
-              label.querySelector('.exam-option-letter').textContent = '☑';
+        ui.innerHTML = `
+          <div class="exam-header" style="margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+              <span style="color:var(--clr-muted);font-size:.85rem;">Question ${idx + 1} of ${total}</span>
+              <span style="color:var(--clr-muted);font-size:.85rem;">${answered} answered</span>
+            </div>
+            <div class="exam-timer-bar-wrap">
+              <div class="exam-timer-bar" id="exam-timer-bar-${level}" style="width:100%"></div>
+            </div>
+            <div style="text-align:center;margin-top:.4rem;">
+              <span id="exam-timer-num-${level}" class="exam-timer-num">${timeLeft}s</span>
+            </div>
+          </div>
+          <div class="exam-question" id="eq-${level}-${idx}" style="border-bottom:none;margin-bottom:1rem;">
+            <p class="exam-q-text"><strong>${idx + 1}.</strong> ${escapeHtml(q.question)}${isMulti ? '<span style="font-size:.75rem;color:var(--clr-primary);margin-left:.5rem;font-weight:600;">(select all that apply)</span>' : ''}</p>
+            <div class="exam-options">
+              ${q.options.map((opt, oi) => {
+                const isSel = isMulti
+                  ? (Array.isArray(userAnswers[idx]) && userAnswers[idx].includes(oi))
+                  : userAnswers[idx] === oi;
+                return `<label class="exam-option ${isSel ? 'selected' : ''}" data-qi="${idx}" data-oi="${oi}" data-type="${q.type || 'single'}">
+                  <span class="exam-option-letter">${isMulti ? (isSel ? '☑' : '☐') : String.fromCharCode(65 + oi)}</span>
+                  <span>${escapeHtml(opt)}</span>
+                </label>`;
+              }).join('')}
+            </div>
+          </div>
+          ${isMulti ? `<div style="text-align:right;margin-top:.5rem;">
+            <button class="btn btn-primary" id="exam-next-btn-${level}" style="min-width:120px;">
+              ${idx === total - 1 ? 'Submit Exam' : 'Next →'}
+            </button>
+          </div>` : ''}
+        `;
+
+        // Option click handler
+        ui.querySelectorAll('.exam-option').forEach(label => {
+          label.addEventListener('click', () => {
+            const qi = parseInt(label.dataset.qi);
+            const oi = parseInt(label.dataset.oi);
+            const qType = label.dataset.type;
+
+            if (qType === 'multi') {
+              const cur = Array.isArray(userAnswers[qi]) ? userAnswers[qi] : [];
+              const pos = cur.indexOf(oi);
+              if (pos === -1) {
+                userAnswers[qi] = [...cur, oi].sort((a, b) => a - b);
+                label.classList.add('selected');
+                label.querySelector('.exam-option-letter').textContent = '☑';
+              } else {
+                userAnswers[qi] = cur.filter(x => x !== oi);
+                label.classList.remove('selected');
+                label.querySelector('.exam-option-letter').textContent = '☐';
+              }
             } else {
-              userAnswers[qi] = cur.filter(x => x !== oi);
-              label.classList.remove('selected');
-              label.querySelector('.exam-option-letter').textContent = '☐';
+              userAnswers[qi] = oi;
+              ui.querySelectorAll(`[data-qi="${qi}"]`).forEach(l => l.classList.remove('selected'));
+              label.classList.add('selected');
+              // Auto-advance single-choice after brief pause
+              clearInterval(timerInterval);
+              setTimeout(() => advance(), 400);
             }
-          } else {
-            userAnswers[qi] = oi;
-            ui.querySelectorAll(`[data-qi="${qi}"]`).forEach(l => l.classList.remove('selected'));
-            label.classList.add('selected');
-          }
-
-          // Update progress
-          const answered = countAnswered();
-          const prog = document.getElementById(`exam-progress-${level}`);
-          if (prog) prog.textContent = `${answered} / ${total} answered`;
-
-          // Enable submit when all answered
-          const submitBtn = document.getElementById(`exam-submit-btn-${level}`);
-          if (submitBtn) submitBtn.disabled = answered < total;
+          });
         });
-      });
 
-      // Submit handler
-      document.getElementById(`exam-submit-btn-${level}`)?.addEventListener('click', async () => {
-        if (userAnswers.some(a => a === null || (Array.isArray(a) && a.length === 0))) {
-          showToast('Please answer all questions before submitting.', 'error');
-          return;
-        }
-        const submitBtn = document.getElementById(`exam-submit-btn-${level}`);
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting…';
+        // Next button for multi-choice
+        document.getElementById(`exam-next-btn-${level}`)?.addEventListener('click', () => advance());
 
+        // Countdown timer
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          const numEl = document.getElementById(`exam-timer-num-${level}`);
+          const barEl = document.getElementById(`exam-timer-bar-${level}`);
+          if (numEl) {
+            numEl.textContent = `${timeLeft}s`;
+            numEl.className = 'exam-timer-num' + (timeLeft <= 10 ? ' exam-timer-urgent' : timeLeft <= 20 ? ' exam-timer-warn' : '');
+          }
+          if (barEl) {
+            barEl.style.width = `${(timeLeft / TIMER_SECONDS) * 100}%`;
+            barEl.className = 'exam-timer-bar' + (timeLeft <= 10 ? ' urgent' : timeLeft <= 20 ? ' warn' : '');
+          }
+          if (timeLeft <= 0) advance();
+        }, 1000);
+      }
+
+      async function submitExam() {
+        clearInterval(timerInterval);
+        ui.innerHTML = `<p style="color:var(--clr-muted);text-align:center;padding:2rem;">Submitting…</p>`;
         try {
           const result = await apiFetch('/api/course/submit-exam', {
             method: 'POST',
@@ -2807,10 +2850,11 @@ async function loadExam(level) {
           showExamResult(level, result);
         } catch (err) {
           showToast(err.message, 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Submit Exam';
+          ui.innerHTML = `<p style="color:#f87171;text-align:center;">Submission failed: ${escapeHtml(err.message)}</p>`;
         }
-      });
+      }
+
+      showQuestion(0);
     }
 
     renderExam();

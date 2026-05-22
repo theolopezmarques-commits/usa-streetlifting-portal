@@ -14,13 +14,23 @@ function getAllQuestions() {
 }
 
 // Question indices per level (answers kept server-side)
+// IDs 0-48 are seed questions (positions 0-48)
+// IDs 99-124 are judge/card-color questions (positions 49-74)
 const LEVEL_QUESTION_INDICES = {
-  0: [0,1,2,3,4,5,6,7, 22,23,24,25,26,27, 28,29,30,31,32,33, 41,42,43,44,45,46,47,48,49, 60,61,62,63,64, 65,66,67,68,69, 70,71,72,73,74],
-  1: [
-    ...Array.from({ length: 10 }, (_, i) => i),      // 0-9
-    ...Array.from({ length: 39 }, (_, i) => i + 11), // 11-49 (index 10 removed)
-    ...Array.from({ length: 25 }, (_, i) => i + 50), // 50-74
+  // L0: general rules, pull/dip seed, safety, and all judge questions
+  0: [
+    0,1,2,3,4,5,6,7,             // General rules (IDs 0-7)
+    22,23,24,25,26,27,            // Pull seed (IDs 22-27)
+    28,29,30,31,32,33,            // Dip seed (IDs 28-33)
+    41,42,43,44,45,46,47,48,      // Safety & competition (IDs 41-48)
+    49,50,51,52,53,               // Ring MU judge (IDs 99-103)
+    54,55,56,57,58,               // Bar MU judge (IDs 104-108)
+    59,60,61,62,63,64,            // Pull judge (IDs 109-114)
+    65,66,75,67,68,69,            // Dip judge (IDs 115,116,125,117,118,119)
+    70,71,72,73,74,               // Squat judge (IDs 120-124)
   ],
+  // L1: all questions
+  1: Array.from({ length: 76 }, (_, i) => i),
 };
 LEVEL_QUESTION_INDICES[2] = LEVEL_QUESTION_INDICES[1];
 

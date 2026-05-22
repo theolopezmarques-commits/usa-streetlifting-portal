@@ -291,6 +291,12 @@ async function initDb() {
   try { db.run("ALTER TABLE exam_questions ADD COLUMN type TEXT NOT NULL DEFAULT 'single'"); } catch {}
   try { db.run('ALTER TABLE exam_questions ADD COLUMN answers TEXT'); } catch {}
 
+  // Remove ambiguous elbow/thigh squat question
+  try { db.run(`DELETE FROM exam_questions WHERE q LIKE '%elbow%thigh%'`); } catch {}
+  // Move judge questions from 51-75 range to 100+ so they don't appear mixed with general questions
+  try { db.run(`DELETE FROM exam_questions WHERE id BETWEEN 50 AND 75`); } catch {}
+
+
   const _qCount = db.exec('SELECT COUNT(*) FROM exam_questions');
   const _isEmpty = !_qCount.length || _qCount[0].values[0][0] === 0;
   if (_isEmpty) {
@@ -336,7 +342,6 @@ async function initDb() {
       { q: 'Double bouncing at the bottom is:', options: ['Allowed','Minor fault','Downward motion no-rep','Restart'], answer: 2 },
       { q: 'Stepping sideways during the squat is:', options: ['Allowed','Illegal foot movement no-rep','Warning','Valid if controlled'], answer: 1 },
       { q: 'Spotters touching the bar before the final command results in:', options: ['Valid rep','Warning','No-rep','Automatic disqualification'], answer: 2 },
-      { q: 'Resting elbows on thighs during a squat is:', options: ['Allowed','Allowed if light','Support no-rep','Warning only'], answer: 2 },
       { q: 'Dropping the barbell intentionally results in:', options: ['Warning','Restart','Immediate disqualification + 2-year ban','No-rep only'], answer: 2 },
       { q: 'How many attempts does an athlete have per lift?', options: ['1','2','3','Unlimited'], answer: 2 },
       { q: 'If an athlete has zero valid reps in one lift:', options: ['Lowest score recorded','Lift skipped','Disqualified from competition','Warning issued'], answer: 2 },
@@ -352,11 +357,11 @@ async function initDb() {
     });
   }
 
-  // Seed judge-responsibility and card-color questions (indices 50-74)
+  // Seed judge-responsibility and card-color questions (IDs 100+, kept separate from general questions 0-48)
   // INSERT OR REPLACE keeps content current with rulebook on every deploy
   const _JUDGE_Q = [
-    // ── Ring Muscle Up (50-54) ──────────────────────────────────────────────
-    { id: 50, q: 'For a ring muscle-up, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
+    // ── Ring Muscle Up (99-103) ──────────────────────────────────────────────
+    { id: 99, q: 'For a ring muscle-up, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
       options: [
         'Chicken wing (elbows overcome rings one at a time)',
         'Kipping or excessive leg drive',
@@ -365,8 +370,8 @@ async function initDb() {
         'Lockout (elbows not fully extended at top)',
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
-      ], type: 'multi', answers: [0, 5] },
-    { id: 51, q: 'For a ring muscle-up, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [0, 3, 4, 5, 6] },
+    { id: 100, q: 'For a ring muscle-up, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
       options: [
         'Chicken wing (elbows overcome rings one at a time)',
         'Kipping or excessive leg drive',
@@ -375,12 +380,12 @@ async function initDb() {
         'Lockout (elbows not fully extended at top)',
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
-      ], type: 'multi', answers: [1, 2, 3, 4, 6] },
-    { id: 52, q: 'What card color is shown for a chicken wing in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
-    { id: 53, q: 'What card color is shown for kipping/kicking in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
-    { id: 54, q: 'What card color is shown for incomplete lockout (elbows not fully extended at top) in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
-    // ── Bar Muscle Up (55-59) ───────────────────────────────────────────────
-    { id: 55, q: 'For a bar muscle-up, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [1, 2, 3, 6] },
+    { id: 101, q: 'What card color is shown for a chicken wing in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 102, q: 'What card color is shown for kipping/kicking in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 103, q: 'What card color is shown for incomplete lockout (elbows not fully extended at top) in a ring muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // ── Bar Muscle Up (104-108) ──────────────────────────────────────────────
+    { id: 104, q: 'For a bar muscle-up, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
       options: [
         'Chicken wing (elbows overcome bar one at a time)',
         'Kipping or excessive leg drive',
@@ -390,8 +395,8 @@ async function initDb() {
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
         'False grip (wrist or forearm touching the bar)',
-      ], type: 'multi', answers: [0, 5] },
-    { id: 56, q: 'For a bar muscle-up, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [0, 4, 5, 6] },
+    { id: 105, q: 'For a bar muscle-up, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
       options: [
         'Chicken wing (elbows overcome bar one at a time)',
         'Kipping or excessive leg drive',
@@ -401,32 +406,40 @@ async function initDb() {
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
         'False grip (wrist or forearm touching the bar)',
-      ], type: 'multi', answers: [1, 2, 3, 4, 6, 7] },
-    { id: 57, q: 'What card color is shown for a chicken wing in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
-    { id: 58, q: 'What card color is shown for kipping/kicking in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
-    { id: 59, q: 'What card color is shown for a false grip (wrist/forearm touching bar) in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
-    // ── Pull (60-64) ────────────────────────────────────────────────────────
-    { id: 60, q: 'For a pull (pull-up/chin-up), which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [1, 2, 3, 7] },
+    { id: 106, q: 'What card color is shown for a chicken wing in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 107, q: 'What card color is shown for kipping/kicking in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 108, q: 'What card color is shown for a false grip (wrist/forearm touching bar) in a bar muscle-up?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // ── Pull (109-114) ───────────────────────────────────────────────────────
+    { id: 109, q: 'For a pull (pull-up/chin-up), which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
       options: [
         'Invalid height (chin does not clearly pass the bar)',
         'Kicking or kipping',
         'Downward motion (direction reversal before chin clears the bar)',
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
-      ], type: 'multi', answers: [3] },
-    { id: 61, q: 'For a pull, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [2, 3, 4] },
+    { id: 110, q: 'For a pull, which no-rep reasons is SIDE JUDGE B responsible for calling? (Select all that apply)',
       options: [
         'Invalid height (chin does not clearly pass the bar)',
         'Kicking or kipping',
         'Downward motion (direction reversal before chin clears the bar)',
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
-      ], type: 'multi', answers: [0, 1, 2, 4] },
-    { id: 62, q: 'What card color is shown for invalid chin height in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
-    { id: 63, q: 'What card color is shown for kicking/kipping in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
-    { id: 64, q: 'What card color is shown for downward motion in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
-    // ── Dip (65-69) ─────────────────────────────────────────────────────────
-    { id: 65, q: 'For a dip, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [1, 2, 4] },
+    { id: 111, q: 'For a pull, which no-rep reasons is SIDE JUDGE C responsible for calling? (Select all that apply)',
+      options: [
+        'Invalid height (chin does not clearly pass the bar)',
+        'Kicking or kipping',
+        'Downward motion (direction reversal before chin clears the bar)',
+        "Signal (athlete misses or ignores a judge's command)",
+        'Bent arms (starts the attempt with bent arms)',
+      ], type: 'multi', answers: [0] },
+    { id: 112, q: 'What card color is shown for invalid chin height in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 113, q: 'What card color is shown for kicking/kipping in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 114, q: 'What card color is shown for downward motion in a pull?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // ── Dip (115-119) ────────────────────────────────────────────────────────
+    { id: 115, q: 'For a dip, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
       options: [
         'Shoulder depth (back shoulder not reaching below elbow line)',
         'Hip depth (hip not reaching required depth)',
@@ -435,8 +448,8 @@ async function initDb() {
         'Downward motion (direction reversal during concentric phase)',
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
-      ], type: 'multi', answers: [5] },
-    { id: 66, q: 'For a dip, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [0, 5, 6] },
+    { id: 116, q: 'For a dip, which no-rep reasons is SIDE JUDGE B responsible for calling? (Select all that apply)',
       options: [
         'Shoulder depth (back shoulder not reaching below elbow line)',
         'Hip depth (hip not reaching required depth)',
@@ -445,12 +458,22 @@ async function initDb() {
         'Downward motion (direction reversal during concentric phase)',
         "Signal (athlete misses or ignores a judge's command)",
         'Bent arms (starts the attempt with bent arms)',
-      ], type: 'multi', answers: [0, 1, 2, 3, 4, 6] },
-    { id: 67, q: 'What card color is shown for invalid depth in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
-    { id: 68, q: 'What card color is shown for kipping/kicking in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
-    { id: 69, q: 'What card color is shown for downward motion in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
-    // ── Squat (70-74) ───────────────────────────────────────────────────────
-    { id: 70, q: 'For a squat, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [0, 2, 4] },
+    { id: 125, q: 'For a dip, which no-rep reasons is SIDE JUDGE C responsible for calling? (Select all that apply)',
+      options: [
+        'Shoulder depth (back shoulder not reaching below elbow line)',
+        'Hip depth (hip not reaching required depth)',
+        'Kipping or excessive leg drive',
+        'Loss of control (excessive hyperextension or touching box before Box!)',
+        'Downward motion (direction reversal during concentric phase)',
+        "Signal (athlete misses or ignores a judge's command)",
+        'Bent arms (starts the attempt with bent arms)',
+      ], type: 'multi', answers: [1, 3] },
+    { id: 117, q: 'What card color is shown for invalid depth in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 118, q: 'What card color is shown for kipping/kicking in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 119, q: 'What card color is shown for downward motion in a dip?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+    // ── Squat (120-124) ──────────────────────────────────────────────────────
+    { id: 120, q: 'For a squat, which no-rep reasons is the FRONT judge responsible for calling? (Select all that apply)',
       options: [
         'Invalid depth (hip crease not below knee line)',
         'Bent knees (starts the squat with bent knees)',
@@ -460,8 +483,8 @@ async function initDb() {
         'Contact by spotter (spotter touches bar or athlete between signals)',
         'Support (athlete rests elbows or upper arms on thighs)',
         'Dropping the barbell',
-      ], type: 'multi', answers: [2] },
-    { id: 71, q: 'For a squat, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
+      ], type: 'multi', answers: [1, 2, 4, 7] },
+    { id: 121, q: 'For a squat, which no-rep reasons are the SIDE judges (B & C) responsible for calling? (Select all that apply)',
       options: [
         'Invalid depth (hip crease not below knee line)',
         'Bent knees (starts the squat with bent knees)',
@@ -471,10 +494,10 @@ async function initDb() {
         'Contact by spotter (spotter touches bar or athlete between signals)',
         'Support (athlete rests elbows or upper arms on thighs)',
         'Dropping the barbell',
-      ], type: 'multi', answers: [0, 1, 3, 4, 5, 6, 7] },
-    { id: 72, q: 'What card color is shown for invalid depth (hip crease not below knee line) in a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
-    { id: 73, q: 'What card color is shown for support (elbows resting on thighs) in a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
-    { id: 74, q: 'What card color is shown for contact by a spotter during a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
+      ], type: 'multi', answers: [0, 1, 3, 5, 6] },
+    { id: 122, q: 'What card color is shown for invalid depth (hip crease not below knee line) in a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 0 },
+    { id: 123, q: 'What card color is shown for support (elbows resting on thighs) in a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 2 },
+    { id: 124, q: 'What card color is shown for contact by a spotter during a squat?', options: ['Red','Black','Yellow','Blue'], type: 'single', answer: 3 },
   ];
   _JUDGE_Q.forEach(q => {
     db.run(
