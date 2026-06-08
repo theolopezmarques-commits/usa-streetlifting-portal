@@ -1135,7 +1135,7 @@ document.addEventListener('click', async (e) => {
 const MOVEMENT_RULES = {
   muscleup: {
     title: 'Muscle Up',
-    img: 'https://usastreetlifting.org/wp-content/uploads/2025/03/Abu-Asada-Returns-819x1024.jpg',
+    img: '/images/muscle-up-card.jpg',
     standards: [
       'Start from the box, arms fully extended.',
       'Wait for the "START!" signal from the front judge before exiting the box.',
@@ -1153,7 +1153,7 @@ const MOVEMENT_RULES = {
   },
   pull: {
     title: 'Pull',
-    img: 'https://usastreetlifting.org/wp-content/uploads/2025/03/Lincoln-Black-Returns-819x1024.jpg',
+    img: '/images/pwrbldr-05360.jpg',
     standards: [
       'Start from a dead hang — arms fully extended, no swing.',
       'Any grip allowed (pronated or supinated). Plates must be between the legs.',
@@ -1170,7 +1170,7 @@ const MOVEMENT_RULES = {
   },
   dip: {
     title: 'Dip',
-    img: 'https://usastreetlifting.org/wp-content/uploads/2025/03/Brian-Shtika-Returns-1-819x1024.jpg',
+    img: '/images/dip-card.jpg',
     standards: [
       'Start at full arm lockout — no swing. Plates between the legs.',
       'Wait for the "START!" signal from the front judge.',
@@ -1187,7 +1187,7 @@ const MOVEMENT_RULES = {
   },
   squat: {
     title: 'Squat',
-    img: 'https://usastreetlifting.org/wp-content/uploads/2025/03/Miguel-Robles-Returns-819x1024.jpg',
+    img: '/images/abu-asada-squat.jpg',
     standards: [
       'Bar on the back, athlete stands erect with knees locked.',
       'Wait for the "START!" signal from the front judge.',
