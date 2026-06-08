@@ -1135,7 +1135,7 @@ document.addEventListener('click', async (e) => {
 const MOVEMENT_RULES = {
   muscleup: {
     title: 'Muscle Up',
-    img: '/images/muscle-up-card.jpg',
+    img: '/images/taryn-albright.jpg',
     standards: [
       'Start from the box, arms fully extended.',
       'Wait for the "START!" signal from the front judge before exiting the box.',
