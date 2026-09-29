@@ -291,10 +291,28 @@ async function initDb() {
   try { db.run("ALTER TABLE exam_questions ADD COLUMN type TEXT NOT NULL DEFAULT 'single'"); } catch {}
   try { db.run('ALTER TABLE exam_questions ADD COLUMN answers TEXT'); } catch {}
 
-  // Remove ambiguous elbow/thigh squat question
-  try { db.run(`DELETE FROM exam_questions WHERE q LIKE '%elbow%thigh%'`); } catch {}
-  // Move judge questions from 51-75 range to 100+ so they don't appear mixed with general questions
-  try { db.run(`DELETE FROM exam_questions WHERE id BETWEEN 50 AND 75`); } catch {}
+  // Two legacy data fixes: drop the ambiguous elbow/thigh question and the old
+  // 50-75 judge-question range. These used to run unguarded on EVERY boot, which
+  // meant they would silently destroy any question an admin later created in
+  // that id range. They are now behind a one-shot flag, so they still repair a
+  // database that has never had them applied, and never fire again afterwards.
+  // (The first of them is what opened the permanent hole at id 41 that the exam
+  // block constants in routes/course.js have to account for.)
+  const LEGACY_EXAM_CLEANUP_FLAG = 'exam_legacy_cleanup_v1';
+  try {
+    const done = db.exec(
+      `SELECT value FROM settings WHERE key = '${LEGACY_EXAM_CLEANUP_FLAG}'`
+    );
+    if (!done.length) {
+      db.run(`DELETE FROM exam_questions WHERE q LIKE '%elbow%thigh%'`);
+      db.run(`DELETE FROM exam_questions WHERE id BETWEEN 50 AND 75`);
+      db.run(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`,
+        [LEGACY_EXAM_CLEANUP_FLAG, new Date().toISOString()]);
+      console.log('Applied one-time legacy exam-question cleanup.');
+    }
+  } catch (err) {
+    console.error('Legacy exam cleanup skipped:', err.message);
+  }
 
 
   const _qCount = db.exec('SELECT COUNT(*) FROM exam_questions');
@@ -351,9 +369,18 @@ async function initDb() {
       { q: 'Judge decisions are:', options: ['Reviewable by coaches','Reviewable by audience','Final and unequivocal','Advisory only'], answer: 2 },
       { q: 'The primary goal of judging is to ensure:', options: ['Fast competitions','Athlete enjoyment','Fair and consistent results','Record-breaking lifts'], answer: 2 },
     ];
+    // The live database has a permanent hole at id 41: an ambiguous squat
+    // question ("elbows resting on thighs") was deleted there and never
+    // replaced. _SEED no longer contains it, so a fresh seed has to skip 41 as
+    // well. Without this, a rebuilt volume would number the last eight
+    // questions 41-48 while production numbers them 42-49, and every id-keyed
+    // lookup (the exam blocks, the admin categories) would quietly point at the
+    // wrong question. Seed ids are part of the contract, not an array index.
+    const SEED_ID_HOLE = 41;
     _SEED.forEach((q, i) => {
+      const id = i < SEED_ID_HOLE ? i : i + 1;
       db.run('INSERT INTO exam_questions (id, q, options, answer) VALUES (?, ?, ?, ?)',
-        [i, q.q, JSON.stringify(q.options), q.answer]);
+        [id, q.q, JSON.stringify(q.options), q.answer]);
     });
   }
 
@@ -501,7 +528,10 @@ async function initDb() {
   ];
   _JUDGE_Q.forEach(q => {
     db.run(
-      'INSERT OR REPLACE INTO exam_questions (id, q, options, type, answers, answer) VALUES (?, ?, ?, ?, ?, ?)',
+      // OR IGNORE, not OR REPLACE: the admin question editor can edit these, and
+      // OR REPLACE silently reverted every correction on the next deploy. New
+      // questions still install; existing ones are left as the admin set them.
+      'INSERT OR IGNORE INTO exam_questions (id, q, options, type, answers, answer) VALUES (?, ?, ?, ?, ?, ?)',
       [q.id, q.q, JSON.stringify(q.options), q.type,
        q.type === 'multi' ? JSON.stringify(q.answers) : null,
        q.type === 'single' ? q.answer : -1]
@@ -517,6 +547,28 @@ async function initDb() {
   dbReady = true;
   saveDb();
   console.log('Database initialised (encrypted at rest).');
+
+  // Reconcile the exam bank against what the exam actually asks for. The
+  // question ids in routes/course.js are written by hand; the database is the
+  // real source of truth and has drifted from the seed arrays before. A
+  // mismatch means some candidate is being served the wrong number of
+  // questions, or a question exists that no exam and no admin screen can reach.
+  // Log loudly, never throw: a content mismatch must not stop the site booting.
+  try {
+    const { LEVEL_QUESTION_IDS } = require('./routes/course');
+    const have   = new Set(dbAll('SELECT id FROM exam_questions', []).map(r => r.id));
+    const listed = new Set(Object.values(LEVEL_QUESTION_IDS).flat());
+    const missing = [...listed].filter(id => !have.has(id)).sort((a, b) => a - b);
+    const stray   = [...have].filter(id => !listed.has(id)).sort((a, b) => a - b);
+    if (missing.length || stray.length) {
+      console.error('EXAM BANK MISMATCH. Ids listed by an exam but absent from the database:',
+        missing, '| ids in the database that no exam block lists:', stray);
+    } else {
+      console.log(`Exam bank reconciled: ${have.size} questions, all accounted for.`);
+    }
+  } catch (err) {
+    console.error('Exam bank reconciliation failed to run:', err.message);
+  }
 }
 
 function saveDb() {

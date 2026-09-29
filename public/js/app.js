@@ -1877,29 +1877,20 @@ async function loadAdminQuestions() {
   if (!container) return;
   container.innerHTML = '<p style="color:var(--clr-muted);text-align:center;padding:2rem;">Loading…</p>';
   try {
-    const { questions } = await apiFetch('/api/admin/questions');
+    const { questions, categories } = await apiFetch('/api/admin/questions');
     const qById = Object.fromEntries(questions.map(q => [q.id, q]));
 
-    const LEVEL0_IDS = new Set([
-      0,1,2,3,4,5,6,7,
-      22,23,24,25,26,27,
-      28,29,30,31,32,33,
-      41,42,43,44,45,46,47,48,
-      99,100,101,102,103,
-      104,105,106,107,108,
-      109,110,111,112,113,114,
-      115,116,125,117,118,119,
-      120,121,122,123,124,
-    ]);
-    const CATEGORIES = [
-      { name: 'General Rules & Judging System', ids: [0,1,2,3,4,5,6,7] },
-      { name: 'Safety & Competition Rules', ids: [41,42,43,44,45,46,47,48] },
-      { name: 'Ring Muscle-Up', ids: [8,9,10,11,12,13,14,15, 99,100,101,102,103] },
-      { name: 'Bar Muscle-Up', ids: [16,17,18,19,20,21, 104,105,106,107,108] },
-      { name: 'Pull-Ups', ids: [22,23,24,25,26,27, 109,110,111,112,113,114] },
-      { name: 'Dips', ids: [28,29,30,31,32,33, 115,116,125,117,118,119] },
-      { name: 'Squats', ids: [34,35,36,37,38,39,40, 120,121,122,123,124] },
-    ];
+    // Level membership comes from the server (question.levels), which reads the
+    // exam route's own tables. Do not re-list the IDs here: a local copy is how
+    // these badges drifted out of sync with the real Level 0 exam.
+    // Grouping comes from the server (routes/course.js), which is also what
+    // builds the exams. A hand-written copy here is what let the admin screen
+    // disagree with the real Level 0 exam, and what hid a question that no
+    // category listed.
+    const CATEGORIES = Array.isArray(categories) ? categories : [];
+    const grouped = new Set(CATEGORIES.flatMap(c => c.ids));
+    const ungrouped = questions.filter(q => !grouped.has(q.id)).map(q => q.id);
+    if (ungrouped.length) CATEGORIES.push({ name: 'Uncategorised', ids: ungrouped });
 
     let html = `<p style="color:var(--clr-muted);font-size:.88rem;margin-bottom:1.5rem;">Click <strong style="color:#fff;">Edit</strong> on any question to change its text, options, or correct answer. Level badges show which exams include the question.</p>`;
 
@@ -1910,7 +1901,8 @@ async function loadAdminQuestions() {
       cat.ids.forEach(i => {
         const q = qById[i];
         if (!q) return;
-        const levelBadge = LEVEL0_IDS.has(i)
+        const inLevel0 = Array.isArray(q.levels) && q.levels.includes(0);
+        const levelBadge = inLevel0
           ? '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(76,217,100,.15);color:#4cd964;margin-left:.5rem;white-space:nowrap;">L0 + L1</span>'
           : '<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:10px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);margin-left:.5rem;white-space:nowrap;">L1 only</span>';
 

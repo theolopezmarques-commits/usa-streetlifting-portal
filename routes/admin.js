@@ -604,15 +604,21 @@ router.delete('/delete-payment/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/admin/questions — all exam questions
+// GET /api/admin/questions — all exam questions, each tagged with the levels
+// whose exam actually serves it (read from the exam route's own tables, so the
+// badges cannot disagree with what candidates are given)
 router.get('/questions', requireAdmin, (req, res) => {
+  const { LEVEL_QUESTION_IDS, QUESTION_CATEGORIES } = require('./course');
+  const levelSets = Object.entries(LEVEL_QUESTION_IDS)
+    .map(([lvl, ids]) => [Number(lvl), new Set(ids || [])]);
   const rows = dbAll('SELECT id, q, options, answer, type, answers FROM exam_questions ORDER BY id', []);
   const questions = rows.map(r => ({
     id: r.id, q: r.q, options: JSON.parse(r.options), answer: r.answer,
     type: r.type || 'single',
     answers: r.answers ? JSON.parse(r.answers) : null,
+    levels: levelSets.filter(([, set]) => set.has(r.id)).map(([lvl]) => lvl),
   }));
-  res.json({ questions });
+  res.json({ questions, categories: QUESTION_CATEGORIES });
 });
 
 // PUT /api/admin/questions/:id — update a single question
@@ -624,11 +630,12 @@ router.put('/questions/:id', requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
   if (qType === 'single') {
-    if (typeof answer !== 'number' || answer < 0 || answer > 3) {
+    if (typeof answer !== 'number' || !Number.isInteger(answer) || answer < 0 || answer >= options.length) {
       return res.status(400).json({ error: 'Invalid answer.' });
     }
   } else {
-    if (!Array.isArray(answers) || answers.length === 0 || answers.some(a => typeof a !== 'number' || a < 0 || a > 3)) {
+    if (!Array.isArray(answers) || answers.length === 0 ||
+        answers.some(a => typeof a !== 'number' || !Number.isInteger(a) || a < 0 || a >= options.length)) {
       return res.status(400).json({ error: 'Invalid answers for multi type.' });
     }
   }
