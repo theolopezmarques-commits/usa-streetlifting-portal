@@ -127,25 +127,35 @@ test('the response never leaks answer, answers, or id keys', async () => {
   }
 });
 
-test("level 1's dip judge block (115,116,125,117,118,119) is contiguous and in that exact order, and id 125 is not last", async () => {
-  const { body } = await getExam(1);
-  const servedIds = idsFor(body.questions);
+// The HTTP layer now shuffles the order it serves questions in (per exam
+// session), so this regression guard moved to the canonical, pre-shuffle
+// order that course.getLevelQuestions() builds, the same order a session's
+// question set is shuffled FROM. That is where the original bug lived: an
+// ORDER BY id strand of id 125 (added after 119) after the squat block.
+test("level 1's canonical question order keeps the dip judge block (115,116,125,117,118,119) contiguous and in that exact order, and id 125 is not last", () => {
+  const ids = course.getLevelQuestions(1).map(q => q.id);
   const dipJudgeBlock = [115, 116, 125, 117, 118, 119];
-  const start = findContiguous(servedIds, dipJudgeBlock);
+  const start = findContiguous(ids, dipJudgeBlock);
   assert.notEqual(start, -1, `expected ${JSON.stringify(dipJudgeBlock)} to appear contiguously and in order`);
-  assert.notEqual(servedIds[servedIds.length - 1], 125, 'id 125 must not be the last question in the exam');
+  assert.notEqual(ids[ids.length - 1], 125, 'id 125 must not be the last question in the exam');
 });
 
-test('GET is stable across repeated calls, and POST agrees with GET on how many answers are required', async () => {
+test('GET opens a fresh session each call, always serving the same question set, and POST agrees with GET on how many answers are required', async () => {
   for (const level of [0, 1]) {
     const first = await getExam(level);
     const second = await getExam(level);
-    assert.deepEqual(first.body, second.body, `level ${level} GET response must be stable across repeated calls`);
+    assert.notEqual(first.body.session_id, second.body.session_id, 'each GET must open its own exam session');
+    assert.equal(first.body.total, second.body.total);
+    assert.deepEqual(
+      idsFor(first.body.questions).sort((a, b) => a - b),
+      idsFor(second.body.questions).sort((a, b) => a - b),
+      `level ${level} must serve the same question set on every call, regardless of the per-session shuffled order`
+    );
 
     const postRes = await fetch(`${exam.baseUrl}/api/course/submit-exam`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level, answers: [] }),
+      body: JSON.stringify({ level, session_id: first.body.session_id, answers: [] }),
     });
     assert.equal(postRes.status, 400);
     const postBody = await postRes.json();

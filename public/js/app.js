@@ -141,6 +141,7 @@ async function apiFetch(url, options = {}) {
   }
   if (!res.ok) {
     const err = new Error(data.error || 'Request failed');
+    err.status = res.status;
     if (data.userId) err.userId = data.userId;
     if (data.pending_verification) err.pending_verification = true;
     throw err;
@@ -1394,7 +1395,7 @@ async function loadAdmin() {
               <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.85rem;padding:.3rem .4rem;border-radius:5px;background:rgba(255,255,255,.03);">
                 <input type="checkbox" class="ann-judge-check" value="${u.id}" style="accent-color:var(--clr-primary);">
                 <span>${escapeHtml(u.name)}</span>
-                <span style="color:var(--clr-muted);font-size:.75rem;">${u.state || '—'}</span>
+                <span style="color:var(--clr-muted);font-size:.75rem;">${escapeHtml(u.state || '—')}</span>
               </label>`).join('')}
           </div>
         </div>
@@ -1537,7 +1538,7 @@ async function loadAdmin() {
                 <tr class="admin-user-row" data-uid="${u.id}" style="cursor:pointer;">
                   <td>${escapeHtml(u.name || '—')}</td>
                   <td style="font-size:.82rem;">${escapeHtml(u.email)}</td>
-                  <td>${u.state || '—'}</td>
+                  <td>${escapeHtml(u.state || '—')}</td>
                   <td>${payPill(u)}</td>
                   <td>${certBadges(u)}</td>
                   <td>${fmtDate(u.created_at)}</td>
@@ -2025,7 +2026,7 @@ function renderPaymentSection(user) {
       : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:.4rem;">
       <div>
-        <span style="font-size:.88rem;font-weight:600;">${p.description || '—'}</span>
+        <span style="font-size:.88rem;font-weight:600;">${escapeHtml(p.description || '—')}</span>
         <span style="font-size:.78rem;color:var(--clr-muted);margin-left:.5rem;">$${((p.amount_cents||0)/100).toFixed(2)}</span>
       </div>
       <div style="display:flex;align-items:center;gap:.5rem;">
@@ -2087,10 +2088,10 @@ async function openUserDetail(user) {
       </div>
     </div>
     <div class="user-detail-meta">
-      <span><strong>State:</strong> ${user.state || '—'}</span>
-      <span><strong>Experience:</strong> ${user.experience || '—'}</span>
+      <span><strong>State:</strong> ${escapeHtml(user.state || '—')}</span>
+      <span><strong>Experience:</strong> ${escapeHtml(user.experience || '—')}</span>
       <span><strong>Joined:</strong> ${fmtDate(user.created_at)}</span>
-      <span><strong>Phone:</strong> ${user.phone || '—'}</span>
+      <span><strong>Phone:</strong> ${escapeHtml(user.phone || '—')}</span>
     </div>
 
     <h4 style="font-family:var(--font-heading);margin:1.5rem 0 .75rem;">Certifications</h4>
@@ -2271,7 +2272,7 @@ async function openUserDetail(user) {
       }
       listEl.innerHTML = history.map(c => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .65rem;background:rgba(255,255,255,.04);border-radius:7px;font-size:.84rem;">
-          <span><strong>${escapeHtml(c.comp_name)}</strong> <span style="color:var(--clr-muted);font-size:.77rem;">${c.comp_date}${c.location ? ' · ' + escapeHtml(c.location) : ''}</span></span>
+          <span><strong>${escapeHtml(c.comp_name)}</strong> <span style="color:var(--clr-muted);font-size:.77rem;">${escapeHtml(c.comp_date)}${c.location ? ' · ' + escapeHtml(c.location) : ''}</span></span>
           <button class="btn-revoke" style="font-size:.72rem;padding:.2rem .5rem;" data-ud-comp-del="${c.id}">✕</button>
         </div>`).join('');
       listEl.querySelectorAll('[data-ud-comp-del]').forEach(btn => {
@@ -2715,7 +2716,7 @@ async function loadExam(level) {
   ui.innerHTML = '<p style="color:var(--clr-muted);">Loading questions…</p>';
 
   try {
-    const { questions, total, pass_threshold } = await apiFetch(`/api/course/exam-questions?level=${level}`);
+    const { questions, total, pass_threshold, session_id } = await apiFetch(`/api/course/exam-questions?level=${level}`);
 
     let userAnswers = questions.map(q => q.type === 'multi' ? [] : null);
 
@@ -2837,12 +2838,26 @@ async function loadExam(level) {
         try {
           const result = await apiFetch('/api/course/submit-exam', {
             method: 'POST',
-            body: JSON.stringify({ level, answers: userAnswers }),
+            body: JSON.stringify({ level, answers: userAnswers, session_id }),
           });
           showExamResult(level, result);
         } catch (err) {
           showToast(err.message, 'error');
-          ui.innerHTML = `<p style="color:#f87171;text-align:center;">Submission failed: ${escapeHtml(err.message)}</p>`;
+          // A failed submit used to leave a dead end: the answers were lost with
+          // the closure and the start button was already hidden, so a single
+          // flaky request at the end of a 40 question exam meant starting over.
+          // 409 and 410 mean the session itself is gone, so those must restart;
+          // anything else can resubmit the answers we still hold.
+          const mustRestart = err.status === 409 || err.status === 410;
+          ui.innerHTML = `
+            <div style="text-align:center;padding:2rem 0;">
+              <p style="color:#f87171;margin-bottom:1rem;">Submission failed: ${escapeHtml(err.message)}</p>
+              <button class="btn btn-primary" id="exam-recover-btn-${level}">${mustRestart ? 'Restart exam' : 'Retry submission'}</button>
+              ${mustRestart ? '' : `<p style="color:var(--clr-muted);font-size:.82rem;margin-top:.75rem;">Your answers are still saved.</p>`}
+            </div>`;
+          document.getElementById(`exam-recover-btn-${level}`)?.addEventListener('click', () => {
+            if (mustRestart) loadExam(level); else submitExam();
+          });
         }
       }
 
@@ -2851,7 +2866,13 @@ async function loadExam(level) {
 
     renderExam();
   } catch (err) {
-    ui.innerHTML = `<p style="color:#f87171;">Could not load exam: ${escapeHtml(err.message)}</p>`;
+    if (startBtn) startBtn.style.display = '';
+    ui.innerHTML = `
+      <div style="text-align:center;padding:1.5rem 0;">
+        <p style="color:#f87171;margin-bottom:1rem;">Could not load exam: ${escapeHtml(err.message)}</p>
+        <button class="btn btn-primary" id="exam-reload-btn-${level}">Try again</button>
+      </div>`;
+    document.getElementById(`exam-reload-btn-${level}`)?.addEventListener('click', () => loadExam(level));
   }
 }
 
@@ -2874,8 +2895,8 @@ function showExamResult(level, result) {
       <div style="text-align:center;padding:2rem 0;">
         <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
         <h3 style="font-family:var(--font-heading);font-size:1.4rem;margin-bottom:.5rem;">Not quite — keep going!</h3>
-        <p style="font-size:1.05rem;margin-bottom:.5rem;">Score: <strong style="color:var(--clr-primary);">${result.score}%</strong> (${result.correct}/${result.total} correct)</p>
-        <p style="color:var(--clr-muted);margin-bottom:1.5rem;">You need <strong>80%</strong> to pass. Answers are not shown — review the course videos and try again.</p>
+        <p style="font-size:1.05rem;margin-bottom:.5rem;">You did not reach the passing score on this attempt.</p>
+        <p style="color:var(--clr-muted);margin-bottom:1.5rem;">You need <strong>80%</strong> to pass. Neither your score nor the answers are shown, so that the exam cannot be worked out by repeated attempts. Review the course videos and try again.</p>
         <button class="btn btn-primary" id="retry-exam-btn-${level}">Try Again</button>
       </div>`;
     document.getElementById(`retry-exam-btn-${level}`)?.addEventListener('click', () => loadExam(level));
@@ -3291,9 +3312,12 @@ function formatRoleHtml(role) {
   const parsed = parseRole(role);
   if (!parsed) return '';
   const parts = [];
-  if (parsed.position) parts.push(`<span style="color:var(--clr-primary);font-weight:700;">Judge ${parsed.position}${parsed.position === 'A' ? ' (Head)' : ''}</span>`);
-  if (parsed.movements && Object.keys(parsed.movements).length) {
-    const movParts = Object.entries(parsed.movements).map(([m, p]) => `${m}: <strong>${p}</strong>`);
+  // parsed comes from JSON.parse of a free-form, user-supplied `role` string,
+  // so every part of it is attacker controlled and must be escaped before it
+  // reaches innerHTML. This renders inside the admin panel.
+  if (parsed.position) parts.push(`<span style="color:var(--clr-primary);font-weight:700;">Judge ${escapeHtml(String(parsed.position))}${parsed.position === 'A' ? ' (Head)' : ''}</span>`);
+  if (parsed.movements && typeof parsed.movements === 'object' && Object.keys(parsed.movements).length) {
+    const movParts = Object.entries(parsed.movements).map(([m, p]) => `${escapeHtml(String(m))}: <strong>${escapeHtml(String(p))}</strong>`);
     parts.push(`<span style="color:var(--clr-muted);font-size:.76rem;">${movParts.join(' · ')}</span>`);
   }
   return parts.length ? `<div style="margin-top:.2rem;">${parts.join(' &nbsp;·&nbsp; ')}</div>` : '';
@@ -3348,7 +3372,7 @@ function renderJudgeModal(container, user, certs, history) {
           ${user.state ? `<div style="flex:1;text-align:center;padding:.75rem .5rem;border-right:1px solid rgba(255,255,255,.07);"><div style="font-size:1.1rem;">📍</div><div style="font-size:.78rem;color:var(--clr-muted);margin-top:.15rem;">${escapeHtml(user.state)}</div></div>` : ''}
           <div style="flex:1;text-align:center;padding:.75rem .5rem;${user.state ? 'border-right:1px solid rgba(255,255,255,.07);' : ''}"><div style="font-size:1.3rem;font-weight:800;font-family:var(--font-heading);color:var(--clr-primary);">${user.comps_judged || 0}</div><div style="font-size:.78rem;color:var(--clr-muted);">Comps Judged</div></div>
           <div style="flex:1;text-align:center;padding:.75rem .5rem;border-left:1px solid rgba(255,255,255,.07);"><div style="font-size:1.3rem;font-weight:800;font-family:var(--font-heading);color:#4cd964;">${activeCerts.length}</div><div style="font-size:.78rem;color:var(--clr-muted);">Active Certs</div></div>
-          ${user.instagram ? `<div style="flex:1;text-align:center;padding:.75rem .5rem;border-left:1px solid rgba(255,255,255,.07);"><a href="https://instagram.com/${user.instagram.replace('@','')}" target="_blank" rel="noopener" style="color:var(--clr-muted);text-decoration:none;font-size:1.1rem;">📸</a><div style="font-size:.78rem;color:var(--clr-muted);margin-top:.15rem;">${escapeHtml(user.instagram)}</div></div>` : ''}
+          ${user.instagram ? `<div style="flex:1;text-align:center;padding:.75rem .5rem;border-left:1px solid rgba(255,255,255,.07);"><a href="https://instagram.com/${escapeAttr(String(user.instagram).replace(/[^A-Za-z0-9._]/g, ''))}" target="_blank" rel="noopener" style="color:var(--clr-muted);text-decoration:none;font-size:1.1rem;">📸</a><div style="font-size:.78rem;color:var(--clr-muted);margin-top:.15rem;">${escapeHtml(user.instagram)}</div></div>` : ''}
         </div>
       </div>
 
@@ -3603,7 +3627,7 @@ async function loadAnalytics() {
             const color = c.days_left <= 0 ? '#f87171' : c.days_left <= 30 ? '#f5a623' : '#4cd964';
             return `<tr style="border-top:1px solid rgba(255,255,255,.06);">
               <td style="padding:.4rem .6rem;">${escapeHtml(c.name)}</td>
-              <td>${c.state || '—'}</td>
+              <td>${escapeHtml(c.state || '—')}</td>
               <td>Level ${c.level}</td>
               <td>${escapeHtml(c.expires_at)}</td>
               <td style="color:${color};font-weight:700;">${c.days_left <= 0 ? 'Expired' : c.days_left + 'd'}</td>

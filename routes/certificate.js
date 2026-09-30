@@ -13,6 +13,11 @@ function formatDate(d) {
   return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
 }
 
+const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (c) => HTML_ESCAPE_MAP[c]);
+}
+
 async function generateCertificate(userName, level, grantedAt) {
   const issueDate  = new Date(grantedAt);
   const validUntil = new Date(grantedAt);
@@ -98,10 +103,10 @@ async function generateCertificate(userName, level, grantedAt) {
 <body>
   <img class="bg" src="${bgSrc}">
   <div class="content">
-    <div class="date-issue">${formatDate(issueDate)}</div>
-    <div class="date-valid">${formatDate(validUntil)}</div>
-    <div class="level-number">${level}</div>
-    <div class="name">${userName.toUpperCase()}</div>
+    <div class="date-issue">${escapeHtml(formatDate(issueDate))}</div>
+    <div class="date-valid">${escapeHtml(formatDate(validUntil))}</div>
+    <div class="level-number">${escapeHtml(level)}</div>
+    <div class="name">${escapeHtml(userName.toUpperCase())}</div>
   </div>
 </body>
 </html>`;
@@ -113,6 +118,17 @@ async function generateCertificate(userName, level, grantedAt) {
 
   try {
     const page = await browser.newPage();
+    // Defense in depth: even if escaping above were ever bypassed, refuse to let the
+    // server-side browser reach the network. The template only needs the inline
+    // data: background image, so every other request is aborted.
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (req.url().startsWith('data:')) {
+        req.continue();
+      } else {
+        req.abort();
+      }
+    });
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdf = await page.pdf({
       width:  '1122px',
@@ -152,7 +168,17 @@ router.get('/:level', async (req, res) => {
   try {
     const pdfBytes = await generateCertificate(user.name, level, cert.granted_at);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="USASL_Level${level}_Certificate_${user.name.replace(/\s+/g, '_')}.pdf"`);
+    // Node rejects non-latin1 header values, and a bare `"` would break the quoted
+    // filename, so the ASCII `filename` is a sanitised, safe-charset-only fallback
+    // and the real name (any charset) travels in the RFC 5987 `filename*` param.
+    const underscored = user.name.replace(/\s+/g, '_');
+    const asciiName = underscored.replace(/[^A-Za-z0-9_-]/g, '');
+    const fallbackName = `USASL_Level${level}_Certificate${asciiName ? '_' + asciiName : ''}.pdf`;
+    const utf8Name = encodeURIComponent(`USASL_Level${level}_Certificate_${underscored}.pdf`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fallbackName}"; filename*=UTF-8''${utf8Name}`
+    );
     res.end(pdfBytes);
   } catch (err) {
     console.error('Certificate generation error:', err.message);

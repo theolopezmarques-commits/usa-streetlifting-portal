@@ -110,6 +110,23 @@ async function initDb() {
     )
   `);
 
+  // Course: server-side exam sessions. Pins the exact, per-session shuffled
+  // question order a candidate was served (question_ids), so submit-exam can
+  // grade against that stored order instead of trusting the client or
+  // recomputing a fresh list. consumed_at makes a session strictly single-use.
+  db.run(`
+    CREATE TABLE IF NOT EXISTS exam_sessions (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER NOT NULL,
+      level        INTEGER NOT NULL,
+      question_ids TEXT    NOT NULL,
+      started_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      consumed_at  TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+  db.run('CREATE INDEX IF NOT EXISTS idx_exam_sessions_user_level ON exam_sessions(user_id, level)');
+
   // Certifications granted by admin after oral exam
   db.run(`
     CREATE TABLE IF NOT EXISTS certifications (

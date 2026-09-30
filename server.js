@@ -100,7 +100,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 if (process.env.DB_PATH) {
   const avatarDir = path.join(require('path').dirname(process.env.DB_PATH), 'avatars');
   if (!require('fs').existsSync(avatarDir)) require('fs').mkdirSync(avatarDir, { recursive: true });
-  app.use('/avatars', express.static(avatarDir));
+
+  // Avatar uploads used to take their extension from the uploaded filename, so a
+  // file named evil.html could be stored and then served back from our own origin
+  // as text/html. routes/profile.js now derives the extension from verified image
+  // bytes, but anything saved before that fix is still sitting on the volume, so
+  // sweep the directory once at boot and remove anything that is not an image.
+  try {
+    const fsx = require('fs');
+    const allowed = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+    for (const f of fsx.readdirSync(avatarDir)) {
+      if (!allowed.has(path.extname(f).toLowerCase())) {
+        fsx.unlinkSync(path.join(avatarDir, f));
+        console.warn('Removed non-image file from avatar directory:', f);
+      }
+    }
+  } catch (err) {
+    console.error('Avatar directory sweep failed:', err.message);
+  }
+
+  // Never let this directory be interpreted as markup, whatever ends up in it.
+  app.use('/avatars', express.static(avatarDir, {
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'");
+    },
+  }));
 }
 
 // --------------- API routes ---------------
@@ -183,6 +208,13 @@ app.get('*', (req, res) => {
 });
 
 // --------------- Start ---------------
+// A rejected initDb used to become an unhandled rejection, which exits without
+// a usable message and leaves Railway restart-looping silently.
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled promise rejection:', err);
+  process.exit(1);
+});
+
 initDb().then(() => {
   app.listen(PORT, () => {
     console.log(`USA Streetlifting server running on http://localhost:${PORT}`);
@@ -212,4 +244,7 @@ initDb().then(() => {
       }
     }
   });
+}).catch((err) => {
+  console.error('FATAL: database failed to initialise, refusing to start:', err);
+  process.exit(1);
 });

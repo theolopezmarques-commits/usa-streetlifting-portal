@@ -9,14 +9,19 @@ module.exports = function stripeWebhook(req, res) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('STRIPE_WEBHOOK_SECRET not set in production — rejecting webhook');
-      return res.status(400).send('Webhook configuration error.');
+    // Fail closed. This used to fall through to processing an UNSIGNED body
+    // whenever NODE_ENV was not exactly 'production', and NODE_ENV is not
+    // pinned anywhere in this repo. If the secret were ever dropped or renamed
+    // on the host, anyone could POST a forged checkout.session.completed and
+    // grant themselves paid course access. Skipping the signature check now
+    // requires saying so explicitly, and it can never be the default.
+    if (process.env.ALLOW_UNSIGNED_STRIPE_WEBHOOK === '1') {
+      console.warn('ALLOW_UNSIGNED_STRIPE_WEBHOOK=1: processing an unsigned webhook. Never set this in production.');
+      handleEvent(req.body.toString());
+      return res.json({ received: true });
     }
-    // Dev only: skip verification (never deploy without STRIPE_WEBHOOK_SECRET)
-    console.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev only)');
-    handleEvent(req.body.toString());
-    return res.json({ received: true });
+    console.error('STRIPE_WEBHOOK_SECRET not set: rejecting webhook.');
+    return res.status(500).send('Webhook not configured.');
   }
 
   let event;

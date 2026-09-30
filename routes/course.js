@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { dbRun, dbGet, dbAll } = require('../db');
 const router = express.Router();
 
@@ -102,6 +103,31 @@ function getLevelQuestions(level) {
   }
   return questions;
 }
+
+// Fisher-Yates over an index array, using crypto.randomInt so the order
+// cannot be predicted or replayed. Only the ORDER the questions are served in
+// is shuffled; option order inside each question is left untouched, since the
+// answer keys are index-based into that option array.
+function shuffledIndices(n) {
+  const order = Array.from({ length: n }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+// Server-side exam sessions close the answer-oracle hole: the exam used to be
+// graded against whatever list the client claimed to have been served, so a
+// candidate could submit a baseline answer array and vary one question at a
+// time, keeping whatever raised the reported correct count. Now a session
+// pins the exact, shuffled question order the candidate was served, and
+// grading always reads that stored order back rather than trusting the
+// client or recomputing a fresh list.
+// Expiry is 30 seconds per question plus a 5 minute grace, matching the
+// per-question timer the browser runs.
+const EXAM_SECONDS_PER_QUESTION = 30;
+const EXAM_GRACE_SECONDS = 5 * 60;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -248,32 +274,50 @@ router.post('/apply-level3', (req, res) => {
 });
 
 // ── GET /api/course/exam-questions?level=0 ────────────────────────────────────
-// Returns questions WITHOUT correct answers
+// Returns questions WITHOUT correct answers, and opens a new server-side exam
+// session that pins the exact order served. Every call opens a fresh session,
+// so refreshing the exam page always hands back a newly shuffled order tied
+// to a new session_id; the old session is simply left unconsumed until it
+// expires.
 router.get('/exam-questions', (req, res) => {
   const level = parseLevel(req.query.level);
   if (![0, 1].includes(level)) return res.status(400).json({ error: 'Invalid level.' });
 
   const userId = req.user.id;
   const user = dbGet('SELECT is_admin FROM users WHERE id = ?', [userId]);
-  if (!user?.is_admin && !hasPaidFor(userId, level)) {
+  const isAdmin = !!user?.is_admin;
+  if (!isAdmin && !hasPaidFor(userId, level)) {
     return res.status(403).json({ error: 'No access to this course.' });
+  }
+  if (!isAdmin && !getProgress(userId, level).all_videos_done) {
+    return res.status(403).json({ error: 'Complete all videos to unlock the exam.' });
   }
 
   const levelQ = getLevelQuestions(level);
-  const questions = levelQ.map((q, i) => ({
+  const order = shuffledIndices(levelQ.length);
+  const shuffledQ = order.map(i => levelQ[i]);
+  const questionIds = shuffledQ.map(q => q.id);
+
+  const { lastInsertRowid: sessionId } = dbRun(
+    `INSERT INTO exam_sessions (user_id, level, question_ids) VALUES (?, ?, ?)`,
+    [userId, level, JSON.stringify(questionIds)]
+  );
+
+  const questions = shuffledQ.map((q, i) => ({
     index: i,
     question: q.q,
     options: q.options,
     type: q.type || 'single',
   }));
 
-  res.json({ questions, total: questions.length, pass_threshold: 80 });
+  res.json({ session_id: sessionId, questions, total: questions.length, pass_threshold: 80 });
 });
 
 // ── POST /api/course/submit-exam ──────────────────────────────────────────────
-// answers: array of selected option indices (0-3), one per question in order
+// answers: array of selected option indices (0-3), one per question, in the
+// order the session's own exam-questions GET served them in.
 router.post('/submit-exam', (req, res) => {
-  const { answers } = req.body;
+  const { answers, session_id } = req.body;
   const level = parseLevel(req.body.level);
   if (![0, 1].includes(level) || !Array.isArray(answers)) {
     return res.status(400).json({ error: 'Invalid payload.' });
@@ -281,18 +325,82 @@ router.post('/submit-exam', (req, res) => {
 
   const userId = req.user.id;
   const user = dbGet('SELECT is_admin FROM users WHERE id = ?', [userId]);
-  if (!user?.is_admin && !hasPaidFor(userId, level)) {
+  const isAdmin = !!user?.is_admin;
+  if (!isAdmin && !hasPaidFor(userId, level)) {
     return res.status(403).json({ error: 'No access to this course.' });
   }
+  if (!isAdmin && !getProgress(userId, level).all_videos_done) {
+    return res.status(403).json({ error: 'Complete all videos to unlock the exam.' });
+  }
 
-  const levelQ = getLevelQuestions(level);
-  if (answers.length !== levelQ.length) {
-    return res.status(400).json({ error: `Expected ${levelQ.length} answers.` });
+  // Attempt cap: at most 3 graded submissions per level per rolling 24 hours.
+  // Admins are exempt so testing stays possible.
+  if (!isAdmin) {
+    const cap = dbGet(
+      `SELECT COUNT(*) as n, MIN(created_at) as oldest FROM exam_attempts
+       WHERE user_id = ? AND level = ? AND created_at >= datetime('now', '-1 day')`,
+      [userId, level]
+    );
+    if (cap.n >= 3) {
+      const retry = dbGet(`SELECT datetime(?, '+1 day') as retry_at`, [cap.oldest]);
+      return res.status(429).json({
+        error: `You have reached the maximum of 3 exam attempts for this level in 24 hours. Try again after ${retry.retry_at} UTC.`,
+      });
+    }
+  }
+
+  // Backward compatibility: a candidate whose exam page was open across this
+  // deploy will submit with no session_id at all. Their answers can no longer
+  // be graded against a trustworthy question order, so they must restart
+  // rather than being silently graded (or silently failed).
+  if (session_id === undefined || session_id === null) {
+    return res.status(409).json({ error: 'Your exam session is out of date. Please restart the exam.' });
+  }
+  if (!Number.isInteger(session_id)) {
+    return res.status(400).json({ error: 'Invalid session_id.' });
+  }
+
+  const session = dbGet(`SELECT * FROM exam_sessions WHERE id = ?`, [session_id]);
+  if (!session) {
+    return res.status(400).json({ error: 'Unknown exam session.' });
+  }
+  if (session.user_id !== userId) {
+    return res.status(403).json({ error: 'This exam session does not belong to you.' });
+  }
+  if (session.level !== level) {
+    return res.status(400).json({ error: 'This exam session is for a different level.' });
+  }
+  if (session.consumed_at) {
+    return res.status(409).json({ error: 'This exam has already been submitted.' });
+  }
+
+  const questionIds = JSON.parse(session.question_ids);
+  const expirySeconds = questionIds.length * EXAM_SECONDS_PER_QUESTION + EXAM_GRACE_SECONDS;
+  // Computed inside SQLite, against the same started_at text SQLite wrote, so
+  // this never depends on how Node happens to parse a timezone-less string.
+  const expiry = dbGet(
+    `SELECT (datetime('now') > datetime(?, '+' || ? || ' seconds')) as expired`,
+    [session.started_at, expirySeconds]
+  );
+  if (expiry.expired) {
+    return res.status(410).json({ error: 'This exam session has expired. Please restart the exam.' });
+  }
+
+  if (answers.length !== questionIds.length) {
+    return res.status(400).json({ error: `Expected ${questionIds.length} answers.` });
+  }
+
+  // Grade against the session's own stored order, never a freshly computed
+  // list, so a stale or tampered client cannot shift the question mapping.
+  const byId = new Map(getAllQuestions().map(q => [q.id, q]));
+  const sessionQ = questionIds.map(id => byId.get(id)).filter(Boolean);
+  if (sessionQ.length !== questionIds.length) {
+    return res.status(400).json({ error: 'This exam session refers to questions that no longer exist. Please restart the exam.' });
   }
 
   let correct = 0;
   answers.forEach((ans, i) => {
-    const q = levelQ[i];
+    const q = sessionQ[i];
     if (q.type === 'multi') {
       // A multi question with no stored key would otherwise match an empty
       // submission and hand every candidate a free point.
@@ -306,20 +414,25 @@ router.post('/submit-exam', (req, res) => {
   });
 
   const PASS_PCT = 80;
-  const score   = Math.round((correct / levelQ.length) * 100);
+  const score   = Math.round((correct / sessionQ.length) * 100);
   // Compared as integers so a displayed score rounded up from 79.5 cannot pass.
-  const passed  = correct * 100 >= PASS_PCT * levelQ.length;
+  const passed  = correct * 100 >= PASS_PCT * sessionQ.length;
 
+  // Single-use: a session can never be graded twice, no matter how many times
+  // its session_id is replayed.
+  dbRun(`UPDATE exam_sessions SET consumed_at = datetime('now') WHERE id = ?`, [session_id]);
   dbRun(
     `INSERT INTO exam_attempts (user_id, level, score, passed) VALUES (?, ?, ?, ?)`,
     [userId, level, score, passed ? 1 : 0]
   );
 
   if (passed) {
-    res.json({ passed: true, score, correct, total: levelQ.length });
+    res.json({ passed: true, score, correct, total: sessionQ.length });
   } else {
-    // Never reveal correct answers on failure
-    res.json({ passed: false, score, correct, total: levelQ.length });
+    // Never reveal the score or the correct count on failure, only that it
+    // was not enough to pass. The real score is still recorded above so the
+    // admin screens keep working.
+    res.json({ passed: false, total: sessionQ.length });
   }
 });
 
@@ -328,3 +441,6 @@ module.exports = router;
 // of keeping its own copy of these lists, which is how they drifted apart.
 module.exports.LEVEL_QUESTION_IDS = LEVEL_QUESTION_IDS;
 module.exports.QUESTION_CATEGORIES = QUESTION_CATEGORIES;
+// Exported so tests can inspect the canonical, pre-shuffle question order
+// (what a session's shuffled order is built FROM) without going through HTTP.
+module.exports.getLevelQuestions = getLevelQuestions;
