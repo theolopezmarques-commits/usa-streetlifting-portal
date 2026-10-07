@@ -332,6 +332,55 @@ async function initDb() {
   }
 
 
+  // Rulebook corrections to five questions, applied once to an existing
+  // database. _SEED only runs when the table is empty, so production never sees
+  // an edit made there. Sources: USASL Rulebook V7 and the FinalRep 2026 VI 26.2
+  // kit; where the two differ the 2026 wording governs judging procedure, per
+  // the Head Judge Handbook. Keyed by LIVE ids, which are not _SEED array
+  // indices because of the permanent hole at 41.
+  const EXAM_KEY_CORRECTIONS_FLAG = 'exam_key_corrections_2026_v1';
+  const _CORRECTIONS = [
+    // id 5 was keyed to "Waving flag". No flag system exists; an invalid lift is
+    // signalled with the coloured card. No option was correct, so one is replaced.
+    { id: 5, q: 'What signal indicates an invalid lift?',
+      options: ['Thumbs down','Red light','Coloured no-rep card','Verbal "No rep"'], answer: 2 },
+    // id 33 as written taught that generating momentum is legal, and contradicted
+    // id 13. Only a minimal, no-advantage change of angle is allowed.
+    { id: 33, q: 'A minimal change in hip and knee angle that gives the athlete no advantage is:',
+      options: ['Always allowed','Allowed if no advantage','Automatic no-rep','Disqualification'], answer: 1 },
+    // id 34: both rulebooks define the attempt as beginning when the knees bend.
+    // V7 3.9(4): "commenced when the athletes knees have unlocked."
+    { id: 34, q: 'When does the squat attempt begin?',
+      options: ['Athlete unracks','Judge says "Platform ready"','Judge commands "Squat!"','Athlete bends knees'], answer: 3 },
+    // id 42: the rule is explicitly intent blind, so "intentionally" taught the
+    // opposite. FinalRep 6.6: neither intention nor the weight plays a role.
+    { id: 42, q: 'Dropping the barbell (intent is irrelevant) results in:',
+      options: ['Warning','Restart','Immediate disqualification + 2-year ban','No-rep only'], answer: 2 },
+    // id 44: V7 2.3(E) disqualifies from the OVERALL STANDINGS only; the athlete
+    // keeps lifting and can still set individual lift records. As keyed, a judge
+    // would wrongly end an athlete's day.
+    { id: 44, q: 'If an athlete has zero valid reps in one lift:',
+      options: ['Lowest score recorded','Lift skipped','Disqualified from the overall standings (may still lift and set records)','Warning issued'], answer: 2 },
+  ];
+  try {
+    const applied = db.exec(`SELECT value FROM settings WHERE key = '${EXAM_KEY_CORRECTIONS_FLAG}'`);
+    if (!applied.length) {
+      let n = 0;
+      for (const c of _CORRECTIONS) {
+        const exists = db.exec(`SELECT id FROM exam_questions WHERE id = ${c.id}`);
+        if (!exists.length) continue;
+        db.run('UPDATE exam_questions SET q = ?, options = ?, answer = ? WHERE id = ?',
+          [c.q, JSON.stringify(c.options), c.answer, c.id]);
+        n++;
+      }
+      db.run(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`,
+        [EXAM_KEY_CORRECTIONS_FLAG, new Date().toISOString()]);
+      if (n) console.log(`Applied ${n} one-time exam answer-key corrections.`);
+    }
+  } catch (err) {
+    console.error('Exam key corrections skipped:', err.message);
+  }
+
   const _qCount = db.exec('SELECT COUNT(*) FROM exam_questions');
   const _isEmpty = !_qCount.length || _qCount[0].values[0][0] === 0;
   if (_isEmpty) {
@@ -341,7 +390,7 @@ async function initDb() {
       { q: 'A lift is considered valid when:', options: ['At least one judge gives thumbs up','Majority vote is reached','All three judges mark it valid (with exceptions)','Head judge approves'], answer: 2 },
       { q: 'Which lifts have judging exceptions requiring fewer than three judges for depth?', options: ['Pull-ups and muscle-ups','Dips and squats','Pull-ups and squats','Muscle-ups and dips'], answer: 1 },
       { q: 'What signal indicates a valid lift?', options: ['Green card','Verbal "Good"','Thumbs up','Arm raised'], answer: 2 },
-      { q: 'What signal indicates an invalid lift?', options: ['Thumbs down','Red light','Waving flag','Verbal "No rep"'], answer: 2 },
+      { q: 'What signal indicates an invalid lift?', options: ['Thumbs down','Red light','Coloured no-rep card','Verbal "No rep"'], answer: 2 },
       { q: 'Are external recordings allowed on the platform?', options: ['Yes','Only by athletes','Only by coaches','No'], answer: 3 },
       { q: 'In case of doubt, judges may request:', options: ['Athlete replay','Crowd decision','Official video review','Coach appeal'], answer: 2 },
       { q: 'What grip is permitted on ring muscle-ups?', options: ['Overhand only','False grip','Mixed grip','Hook grip'], answer: 1 },
@@ -369,17 +418,17 @@ async function initDb() {
       { q: 'Belt line must be:', options: ['Above handles','Level with dip handles','Below knees','Hidden by clothing'], answer: 1 },
       { q: 'Clothing that hides depth results in:', options: ['Warning','Valid rep','No-rep','Restart'], answer: 2 },
       { q: 'Excessive arching or touching the box before "Box!" is:', options: ['Allowed','Loss of control no-rep','Warning only','Minor fault'], answer: 1 },
-      { q: 'Using hips or legs for momentum is:', options: ['Always allowed','Allowed if no advantage','Automatic no-rep','Disqualification'], answer: 1 },
-      { q: 'When does the squat attempt begin?', options: ['Athlete unracks','Judge says "Platform ready"','Judge commands "Squat!"','Athlete bends knees'], answer: 2 },
+      { q: 'A minimal change in hip and knee angle that gives the athlete no advantage is:', options: ['Always allowed','Allowed if no advantage','Automatic no-rep','Disqualification'], answer: 1 },
+      { q: 'When does the squat attempt begin?', options: ['Athlete unracks','Judge says "Platform ready"','Judge commands "Squat!"','Athlete bends knees'], answer: 3 },
       { q: 'Squat depth is valid when:', options: ['Thigh is parallel','Hip crease below knee line','Knees pass toes','Bar touches shoulders'], answer: 1 },
       { q: 'Clothing that hides the hip crease results in:', options: ['Warning','Valid rep','No-rep','Restart'], answer: 2 },
       { q: 'Failing to lock knees at the top is:', options: ['Warning','Restart','No-rep','Disqualification'], answer: 2 },
       { q: 'Double bouncing at the bottom is:', options: ['Allowed','Minor fault','Downward motion no-rep','Restart'], answer: 2 },
       { q: 'Stepping sideways during the squat is:', options: ['Allowed','Illegal foot movement no-rep','Warning','Valid if controlled'], answer: 1 },
       { q: 'Spotters touching the bar before the final command results in:', options: ['Valid rep','Warning','No-rep','Automatic disqualification'], answer: 2 },
-      { q: 'Dropping the barbell intentionally results in:', options: ['Warning','Restart','Immediate disqualification + 2-year ban','No-rep only'], answer: 2 },
+      { q: 'Dropping the barbell (intent is irrelevant) results in:', options: ['Warning','Restart','Immediate disqualification + 2-year ban','No-rep only'], answer: 2 },
       { q: 'How many attempts does an athlete have per lift?', options: ['1','2','3','Unlimited'], answer: 2 },
-      { q: 'If an athlete has zero valid reps in one lift:', options: ['Lowest score recorded','Lift skipped','Disqualified from competition','Warning issued'], answer: 2 },
+      { q: 'If an athlete has zero valid reps in one lift:', options: ['Lowest score recorded','Lift skipped','Disqualified from the overall standings (may still lift and set records)','Warning issued'], answer: 2 },
       { q: 'How many valid reps are required per lift to stay in competition?', options: ['0','1','2','3'], answer: 1 },
       { q: 'Standard format includes:', options: ['Pull-up and dip only','Muscle-up only','All four lifts','Squat only'], answer: 2 },
       { q: 'Classic format includes:', options: ['All lifts','Muscle-up and squat','Pull-up and dip','Squat only'], answer: 2 },
