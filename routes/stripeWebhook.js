@@ -61,13 +61,7 @@ function handleEvent(rawBody, event) {
           `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`,
           [userId, level]
         );
-        // Level 1 includes Level 0 content — grant level 0 access too
-        if (level === 1) {
-          dbRun(
-            `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`,
-            [userId]
-          );
-        }
+        // Level 1 grants Level 1 only. Level 0 is a separate purchase.
         console.log(`Course access granted: user ${userId} → Level ${level} (option: ${optionId})`);
       }
 

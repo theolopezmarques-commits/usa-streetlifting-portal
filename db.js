@@ -381,6 +381,8 @@ async function initDb() {
     console.error('Exam key corrections skipped:', err.message);
   }
 
+  applyLevel1OnlyAccessFix(db);
+
   const _qCount = db.exec('SELECT COUNT(*) FROM exam_questions');
   const _isEmpty = !_qCount.length || _qCount[0].values[0][0] === 0;
   if (_isEmpty) {
@@ -637,6 +639,46 @@ async function initDb() {
   }
 }
 
+// One-shot fix: Level 1 purchases used to auto-grant Level 0 access too. Remove
+// those auto-granted Level 0 rows (granted_by NULL) for users who never paid for,
+// were never granted, and do not hold Level 0, and carry over the Level 0 videos
+// they already watched to the identical Level 1 videos. Returns users fixed.
+function applyLevel1OnlyAccessFix(rawDb) {
+  const FLAG = 'level1_only_access_v1';
+  const standalone = !rawDb;
+  const conn = rawDb || ensureDb();
+  let fixed = 0;
+  try {
+    if (conn.exec(`SELECT value FROM settings WHERE key = '${FLAG}'`).length) return 0;
+    const res = conn.exec(`
+      SELECT DISTINCT a1.user_id FROM course_access a1
+      JOIN course_access a0 ON a0.user_id = a1.user_id AND a0.level = 0 AND a0.granted_by IS NULL
+      WHERE a1.level = 1
+        AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.user_id = a1.user_id
+              AND p.status IN ('paid','waived') AND p.description LIKE '%Level 0%')
+        AND NOT EXISTS (SELECT 1 FROM certifications c WHERE c.user_id = a1.user_id AND c.level = 0)
+    `);
+    const userIds = res.length ? res[0].values.map(r => r[0]) : [];
+    const MAP = { 0: 0, 1: 1, 2: 2, 3: 5, 4: 6 };
+    for (const uid of userIds) {
+      conn.run('DELETE FROM course_access WHERE user_id = ? AND level = 0 AND granted_by IS NULL', [uid]);
+      const vp = conn.exec('SELECT video_index FROM video_progress WHERE user_id = ? AND level = 0', [uid]);
+      for (const row of (vp.length ? vp[0].values : [])) {
+        const mapped = MAP[row[0]];
+        if (mapped === undefined) continue;
+        conn.run('INSERT OR IGNORE INTO video_progress (user_id, level, video_index) VALUES (?, 1, ?)', [uid, mapped]);
+      }
+      fixed++;
+    }
+    conn.run(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, [FLAG, new Date().toISOString()]);
+    if (standalone) saveDb();
+    console.log(`Level 1-only access fix: ${fixed} user(s) updated.`);
+  } catch (err) {
+    console.error('Level 1-only access fix skipped:', err.message);
+  }
+  return fixed;
+}
+
 function saveDb() {
   if (!db) return;
   const plain = Buffer.from(db.export());
@@ -687,4 +729,4 @@ function dbAll(sql, params = []) {
   return rows;
 }
 
-module.exports = { initDb, dbRun, dbGet, dbAll };
+module.exports = { initDb, dbRun, dbGet, dbAll, applyLevel1OnlyAccessFix };

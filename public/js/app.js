@@ -507,7 +507,7 @@ const CERT_DESCRIPTIONS = {
   },
   cert_level_1: {
     tagline: 'All 4 Movements · Full Format',
-    detail: 'Covers all four movements: <strong>Pull, Dip, Muscle Up</strong> and <strong>Back Squat</strong>. Includes everything in Level 0 plus the additional movements. <strong>No Level 0 required</strong> — you can take this directly and judge any competition format.',
+    detail: 'Covers all four movements: <strong>Pull, Dip, Muscle Up</strong> and <strong>Back Squat</strong>. Includes everything in Level 0 plus the additional movements, in one single Level 1 course and exam. <strong>No Level 0 required</strong>: you can take this directly and judge any competition format.',
   },
 };
 
@@ -2350,7 +2350,11 @@ async function loadCourse() {
   tabs.forEach((t, i) => {
     html += `<button class="course-tab${i === 0 ? ' active' : ''}" data-level="${t.level}">${t.label}</button>`;
   });
-  html += `</div><div id="course-level-content"></div>`;
+  html += `</div>`;
+  if (access.level1 && !access.level0) {
+    html += `<p style="color:var(--clr-muted);font-size:.85rem;margin:-.5rem 0 1.25rem;">You purchased Level 1. The Level 1 course and the Level 1 exam are the only ones you need to complete.</p>`;
+  }
+  html += `<div id="course-level-content"></div>`;
 
   // Level 3 apply section (for certified users)
   if (can_apply_level3) {
@@ -2403,13 +2407,18 @@ async function loadCourse() {
   });
 }
 
+// Correction shown on the Dips video. The video says the belt line only has to
+// be level with the dip handles (at 0:52, 1:44 and 2:48). The correct standard
+// is that the bottom of the dip belt must be below the top of the dip bars.
+const DIP_DEPTH_NOTE = 'Correction on hip depth: in this video the belt line is described as being level with the dip handles (at 0:52, 1:44 and 2:48). The correct standard is that the <strong>bottom of the dip belt must be below the top of the dip bars</strong>. The shoulder depth rule (shoulder below the elbow) is unchanged.';
+
 const COURSE_VIDEOS = {
   0: [
     { title: 'Course Overview', file: 'Course Overview.mp4' },
     { title: 'Introduction',    file: 'Introduction.mp4' },
     { title: 'Judging System',  file: 'Judging System.mp4' },
     { title: 'Pulls',           file: 'Pulls.mp4' },
-    { title: 'Dips',            file: 'DIPS.mp4' },
+    { title: 'Dips',            file: 'DIPS.mp4', note: DIP_DEPTH_NOTE },
     { title: 'Conclusion',      file: 'Conclusion.mp4' },
   ],
   1: [
@@ -2419,7 +2428,7 @@ const COURSE_VIDEOS = {
     { title: 'Bar Muscle Up',   file: 'Bar Muscle Up.mp4' },
     { title: 'Ring Muscle Up',  file: 'Ring Muscle Up.mp4' },
     { title: 'Pulls',           file: 'Pulls.mp4' },
-    { title: 'Dips',            file: 'DIPS.mp4' },
+    { title: 'Dips',            file: 'DIPS.mp4', note: DIP_DEPTH_NOTE },
     { title: 'Squats',          file: 'Squats.mp4' },
     { title: 'Conclusion',      file: 'Conclusion.mp4' },
   ],
@@ -2475,6 +2484,7 @@ function renderCourseLevel(level, prog, isAdmin) {
         <div class="video-info" style="pointer-events:none;">
           <div class="video-title">${v.title}</div>
           <div class="video-status ${statusClass}">${statusText}</div>
+          ${v.note ? `<div style="margin-top:.4rem;font-size:.72rem;color:#f5a623;font-weight:600;">⚠ Includes a correction note</div>` : ''}
           ${(isAdmin && !done) ? `<button class="btn-grant" style="margin-top:.5rem;font-size:.75rem;pointer-events:all;" data-mark-video="${i}" data-mark-level="${level}">Mark watched (admin)</button>` : ''}
         </div>
       </div>`;
@@ -2587,7 +2597,7 @@ function renderCourseLevel(level, prog, isAdmin) {
       const src   = card.dataset.src;
       const title = (COURSE_VIDEOS[lv] || [])[vi]?.title || `Video ${vi + 1}`;
       const done  = card.classList.contains('completed');
-      window.openVideoPlayer(src, title, vi, lv, done);
+      window.openVideoPlayer(src, title, vi, lv, done, (COURSE_VIDEOS[lv] || [])[vi]?.note || '');
     });
   });
 
@@ -2648,17 +2658,22 @@ function downloadCertificate(level) {
   const titleEl  = document.getElementById('video-modal-title');
   const player   = document.getElementById('video-modal-player');
   const footer   = document.getElementById('video-modal-footer');
+  const noteEl   = document.getElementById('video-modal-note');
 
   let currentVideoIndex = null;
   let currentLevel      = null;
   let markedComplete    = false;
 
-  window.openVideoPlayer = function(src, title, videoIndex, level, alreadyDone) {
+  window.openVideoPlayer = function(src, title, videoIndex, level, alreadyDone, note) {
     currentVideoIndex = videoIndex;
     currentLevel      = level;
     markedComplete    = alreadyDone;
 
     titleEl.textContent = title;
+    if (noteEl) {
+      noteEl.innerHTML = note || '';
+      noteEl.style.display = note ? 'block' : 'none';
+    }
     player.src = src;
     player.currentTime = 0;
     footer.innerHTML = alreadyDone

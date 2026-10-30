@@ -109,12 +109,7 @@ router.get('/verify-session', async (req, res) => {
         `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`,
         [req.user.id, level]
       );
-      if (level === 1) {
-        dbRun(
-          `INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`,
-          [req.user.id]
-        );
-      }
+      // Level 1 grants Level 1 only. Level 0 is a separate purchase.
     }
 
     res.json({ success: true, description: session.metadata?.description });

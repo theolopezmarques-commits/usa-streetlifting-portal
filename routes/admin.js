@@ -471,7 +471,7 @@ router.post('/sync-payments', requireAdmin, async (req, res) => {
         const level = levelMap[optionId];
         if (level !== undefined) {
           dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`, [p.user_id, level]);
-          if (level === 1) dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`, [p.user_id]);
+          // Level 1 grants Level 1 only. Level 0 is a separate purchase.
         }
         results.push(`FIXED: ${p.name} (${p.email}) — ${p.description} — level granted: ${level ?? 'unknown option '+optionId}`);
         fixed++;
@@ -497,7 +497,7 @@ router.post('/sync-payments', requireAdmin, async (req, res) => {
     const level = levelMatch ? parseInt(levelMatch[1]) : null;
     if (level !== null && level <= 1) {
       dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, ?, NULL)`, [p.user_id, level]);
-      if (level === 1) dbRun(`INSERT OR IGNORE INTO course_access (user_id, level, granted_by) VALUES (?, 0, NULL)`, [p.user_id]);
+      // Level 1 grants Level 1 only. Level 0 is a separate purchase.
       results.push(`ACCESS FIXED: ${p.name} (${p.email}) already paid — granted Level ${level}`);
       fixed++;
     }
